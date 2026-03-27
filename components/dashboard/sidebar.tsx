@@ -57,7 +57,7 @@ export function Sidebar() {
         </nav>
 
         {/* User Section */}
-        <div className="border-t border-border p-4">
+        <Link href="/dashboard/profile" className="border-t border-border p-4">
           <div className="flex items-center gap-3 rounded-[16px] bg-[#E8F5E9] px-4 py-3">
             <div className="h-9 w-9 rounded-full bg-[#A7D7A0] flex items-center justify-center">
               <span className="text-sm font-medium text-[#2E2E2E]">JD</span>
@@ -67,7 +67,7 @@ export function Sidebar() {
               <p className="text-xs text-muted-foreground truncate">Premium Plan</p>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
     </aside>
   );
