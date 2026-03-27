@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ArrowRight, Leaf, TrendingUp, Sparkles, BarChart3, Calendar } from 'lucide-react';
+import { ArrowRight, TrendingUp, Sparkles, BarChart3, Calendar } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -18,7 +18,7 @@ const showcaseImages = [
     category: 'Growing',
   },
   {
-    src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop',
+    src: 'https://gdb.voanews.com/01000000-0aff-0242-4528-08dc018b3acd_cx0_cy10_cw0_w1080_h608.jpg',
     title: 'Ocean Metrics',
     category: 'Viral',
   },

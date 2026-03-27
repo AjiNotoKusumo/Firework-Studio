@@ -9,7 +9,10 @@ import { useState } from 'react';
 const sideImages = [
   'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600',
   'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600',
+  'https://gdb.voanews.com/01000000-0aff-0242-4528-08dc018b3acd_cx0_cy10_cw0_w1080_h608.jpg',
+  'https://media.licdn.com/dms/image/sync/v2/D4E27AQHKxS5Tx4BdkQ/articleshare-shrink_800/articleshare-shrink_800/0/1725261177469?e=2147483647&v=beta&t=CU3j-cuxXRPf5CiH6yL5pu07AIUh1SraJ24b-ofc4Z0',
+  'https://www.lombokjourney.com/wp-content/uploads/2024/11/danau-biru-lombok-tengah.jpeg',
+  'https://cdn.wionews.com/sites/default/files/2022/12/20/319667-viral-lionel-messi-posts-pictures-sleeping-with-fifa-world-cup-trophy.jpg',
 ];
 
 export default function RegisterPage() {
@@ -48,8 +51,8 @@ export default function RegisterPage() {
       {/* 🖼️ Floating Image Strip */}
       <div className="hidden lg:flex absolute inset-y-0 left-0 w-1/3 items-center overflow-hidden">
         <motion.div
-          animate={{ y: ['100%', '-100%'] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+          animate={{ y: ['0%', '-100%'] }}
+          transition={{ duration: 50, repeat: Infinity, ease: 'linear' }}
           className="flex flex-col">
           {[...sideImages, ...sideImages].map((src, i) => (
             <div
@@ -64,8 +67,8 @@ export default function RegisterPage() {
       {/* 🖼️ Right side strip */}
       <div className="hidden lg:flex absolute inset-y-0 right-0 w-1/3 items-center overflow-hidden justify-end">
         <motion.div
-          animate={{ y: ['-100%', '100%'] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+          animate={{ y: ['0%', '100%'] }}
+          transition={{ duration: 50, repeat: Infinity, ease: 'linear' }}
           className="flex flex-col">
           {[...sideImages, ...sideImages].map((src, i) => (
             <div
@@ -118,9 +121,8 @@ export default function RegisterPage() {
               className="w-full rounded-[12px] border border-border px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#A7D7A0] outline-none"
             />
 
-            <button className="w-full mt-2 flex items-center justify-center gap-2 rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] transition-all">
+            <button className="w-full mt-2 flex items-center justify-center gap-2 rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] transition-all hover:scale-110">
               Register
-              <ArrowRight className="h-4 w-4" />
             </button>
           </form>
 
