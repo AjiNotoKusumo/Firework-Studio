@@ -36,6 +36,15 @@ export default function CalendarPage() {
     fetchPosts()
   }, [])
 
+  const handleEventDrop = (info: any) => {
+  // Update event in your state or send to API
+      console.log(info.event.title + " was dropped on " + info.event.start.toISOString());
+      if (!window.confirm("Change post schedule to " + info.event.start + "?")) {
+          info.revert(); // Revert the event to its original position
+      }
+  };
+
+
   const calendarEvents = posts.map(post => ({
     id: post.id,
     title: post.caption.substring(0, 30) + (post.caption.length > 30 ? "..." : ""),
@@ -115,7 +124,9 @@ export default function CalendarPage() {
           plugins={[dayGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           events={calendarEvents}
+          editable={true}
           eventClick={handleEventClick}
+          eventDrop={handleEventDrop}
           headerToolbar={{
             left: "prev,next today",
             center: "title",
