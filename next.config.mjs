@@ -6,7 +6,11 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+<<<<<<< HEAD
   allowedDevOrigins: ['localtest.me'],
 }
+=======
+};
+>>>>>>> d06c636b8bc34d91bf384270b73c02b4b19eb51c
 
-export default nextConfig
+export default nextConfig;

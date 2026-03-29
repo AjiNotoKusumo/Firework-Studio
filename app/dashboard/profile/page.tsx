@@ -1,26 +1,31 @@
 'use client';
 
 import { signOut } from '@/lib/auth-client';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Instagram, Twitter, Plus, LogOut } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Instagram, Twitter, Plus, LogOut, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-const interests = ['marketing', 'viral', 'content', 'growth', 'branding', 'social media'];
-
 const accounts = [
-  {
-    platform: 'Instagram',
-    username: '@indra.creates',
-    icon: Instagram,
-  },
-  {
-    platform: 'Twitter',
-    username: '@indra_tw',
-    icon: Twitter,
-  },
+  { platform: 'Instagram', username: '@indra.creates', icon: Instagram },
+  { platform: 'Twitter', username: '@indra_tw', icon: Twitter },
 ];
+
+const SUGGESTIONS = ['growth', 'branding', 'startup', 'design', 'ai', 'social media'];
+
+// ── Shared overlay + modal variants ──────────────────────────────────────────
+const overlayVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+  exit: { opacity: 0 },
+};
+
+const modalVariants = {
+  hidden: { opacity: 0, scale: 0.92, y: 12 },
+  visible: { opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 340, damping: 28 } },
+  exit: { opacity: 0, scale: 0.92, y: 12, transition: { duration: 0.18, ease: 'easeIn' } },
+};
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -29,17 +34,11 @@ export default function ProfilePage() {
   const [userInterests, setUserInterests] = useState<string[]>(['marketing', 'viral', 'content']);
   const [input, setInput] = useState('');
 
-  const suggestions = ['growth', 'branding', 'startup', 'design', 'ai', 'social media'];
-
-  const normalize = (text: string) => text.trim().toLowerCase();
+  const normalize = (t: string) => t.trim().toLowerCase();
 
   const addInterest = (tag: string) => {
-    const formatted = normalize(tag);
-    if (!formatted) return;
-
-    if (!userInterests.includes(formatted)) {
-      setUserInterests([...userInterests, formatted]);
-    }
+    const f = normalize(tag);
+    if (f && !userInterests.includes(f)) setUserInterests((p) => [...p, f]);
   };
 
   const handleLogout = () => {
@@ -47,9 +46,7 @@ export default function ProfilePage() {
     router.push("/");
   }
 
-  const removeInterest = (tag: string) => {
-    setUserInterests(userInterests.filter((t) => t !== tag));
-  };
+  const removeInterest = (tag: string) => setUserInterests((p) => p.filter((t) => t !== tag));
 
   const handleAddFromInput = () => {
     addInterest(input);
@@ -72,7 +69,6 @@ export default function ProfilePage() {
           <div className="h-20 w-20 rounded-[20px] bg-[#A7D7A0] flex items-center justify-center overflow-hidden">
             <Image src="/firework.png" alt="avatar" width={50} height={50} />
           </div>
-
           <div>
             <h1 className="text-2xl font-semibold text-foreground">Indra Sanjaya</h1>
             <p className="text-sm text-muted-foreground">Building viral content, one post at a time 🌱</p>
@@ -100,7 +96,6 @@ export default function ProfilePage() {
                 {tag}
               </span>
             ))}
-
             <button
               onClick={() => setOpenEdit(true)}
               className="px-4 py-1.5 rounded-full border border-dashed text-sm flex items-center gap-1 hover:bg-muted transition">
@@ -130,7 +125,6 @@ export default function ProfilePage() {
                     <p className="text-xs text-muted-foreground">{acc.username}</p>
                   </div>
                 </div>
-
                 <button className="text-xs text-red-500 hover:underline">Disconnect</button>
               </div>
             ))}
@@ -144,94 +138,148 @@ export default function ProfilePage() {
         </motion.div>
       </div>
 
-      {/* Connect Modal */}
-      {openConnect && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[24px] bg-background p-6 shadow-[0_8px_30px_rgba(0,0,0,0.15)]">
-            <h2 className="text-lg font-semibold mb-4">Connect Account</h2>
+      {/* ═══════════════════════════════════════
+          CONNECT ACCOUNT MODAL
+          Both overlay and card are motion elements
+          wrapped in AnimatePresence so exit animations fire.
+      ═══════════════════════════════════════ */}
+      <AnimatePresence>
+        {openConnect && (
+          <motion.div
+            key="connect-overlay"
+            variants={overlayVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={() => setOpenConnect(false)}>
+            <motion.div
+              key="connect-modal"
+              variants={modalVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md mx-4 rounded-[24px] bg-background p-6 shadow-[0_8px_30px_rgba(0,0,0,0.15)]">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-semibold">Connect Account</h2>
+                <button
+                  onClick={() => setOpenConnect(false)}
+                  className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-muted transition">
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </div>
 
-            <div className="space-y-3">
-              <button className="w-full flex items-center justify-between rounded-[16px] border px-4 py-3 hover:bg-[#E8F5E9]">
-                <div className="flex items-center gap-3">
-                  <Instagram className="h-5 w-5 text-[#E1306C]" />
-                  Instagram
-                </div>
-                <span className="text-xs text-muted-foreground">Connect</span>
+              <div className="space-y-3">
+                <button className="w-full flex items-center justify-between rounded-[16px] border px-4 py-3 hover:bg-[#E8F5E9] transition">
+                  <div className="flex items-center gap-3">
+                    <Instagram className="h-5 w-5 text-[#E1306C]" />
+                    <span className="text-sm font-medium">Instagram</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Connect</span>
+                </button>
+
+                <button className="w-full flex items-center justify-between rounded-[16px] border px-4 py-3 hover:bg-[#E8F5E9] transition">
+                  <div className="flex items-center gap-3">
+                    <Twitter className="h-5 w-5 text-[#1DA1F2]" />
+                    <span className="text-sm font-medium">Twitter</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Connect</span>
+                </button>
+              </div>
+
+              <button
+                onClick={() => setOpenConnect(false)}
+                className="mt-6 w-full text-sm text-muted-foreground hover:text-foreground transition">
+                Cancel
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-              <button className="w-full flex items-center justify-between rounded-[16px] border px-4 py-3 hover:bg-[#E8F5E9]">
-                <div className="flex items-center gap-3">
-                  <Twitter className="h-5 w-5 text-[#1DA1F2]" />
-                  Twitter
-                </div>
-                <span className="text-xs text-muted-foreground">Connect</span>
-              </button>
-            </div>
-
-            <button
-              onClick={() => setOpenConnect(false)}
-              className="mt-6 w-full text-sm text-muted-foreground hover:text-foreground">
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Interests Modal */}
+      {/* ═══════════════════════════════════════
+          EDIT INTERESTS MODAL
+      ═══════════════════════════════════════ */}
       <AnimatePresence>
         {openEdit && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            key="edit-overlay"
+            variants={overlayVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={() => setOpenEdit(false)}>
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-              className="w-full max-w-lg rounded-[24px] bg-background p-6 shadow-[0_8px_30px_rgba(0,0,0,0.15)]">
-              <h2 className="text-lg font-semibold mb-4">Edit Interests</h2>
+              key="edit-modal"
+              variants={modalVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg mx-4 rounded-[24px] bg-background p-6 shadow-[0_8px_30px_rgba(0,0,0,0.15)]">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-semibold">Edit Interests</h2>
+                <button
+                  onClick={() => setOpenEdit(false)}
+                  className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-muted transition">
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </div>
 
               {/* Input */}
               <div className="flex gap-2 mb-4">
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddFromInput()}
                   placeholder="Add interest..."
                   className="flex-1 rounded-[12px] border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#A7D7A0]"
                 />
                 <button
                   onClick={handleAddFromInput}
-                  className="px-4 py-2 rounded-[12px] bg-[#A7D7A0] text-sm font-medium hover:bg-[#8BC98B]">
+                  className="px-4 py-2 rounded-[12px] bg-[#A7D7A0] text-sm font-medium hover:bg-[#8BC98B] transition">
                   Add
                 </button>
               </div>
 
-              {/* Selected */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                {userInterests.map((tag) => (
-                  <span
-                    key={tag}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#E8F5E9] text-sm capitalize">
-                    {tag}
-                    <button
-                      onClick={() => removeInterest(tag)}
-                      className="text-xs text-muted-foreground hover:text-red-500">
-                      ✕
-                    </button>
-                  </span>
-                ))}
+              {/* Selected tags */}
+              <div className="flex flex-wrap gap-2 mb-5 min-h-[36px]">
+                <AnimatePresence>
+                  {userInterests.map((tag) => (
+                    <motion.span
+                      key={tag}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.15 }}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#E8F5E9] text-sm capitalize">
+                      {tag}
+                      <button
+                        onClick={() => removeInterest(tag)}
+                        className="text-xs text-muted-foreground hover:text-red-500 transition">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </motion.span>
+                  ))}
+                </AnimatePresence>
               </div>
 
               {/* Suggestions */}
               <div className="mb-6">
                 <p className="text-xs text-muted-foreground mb-2">Suggestions</p>
                 <div className="flex flex-wrap gap-2">
-                  {suggestions.map((tag) => (
+                  {SUGGESTIONS.map((tag) => (
                     <button
                       key={tag}
                       onClick={() => addInterest(tag)}
-                      className="px-3 py-1 rounded-full border text-xs hover:bg-[#E8F5E9]">
+                      disabled={userInterests.includes(tag)}
+                      className="px-3 py-1 rounded-full border text-xs hover:bg-[#E8F5E9] transition disabled:opacity-40 disabled:cursor-not-allowed">
                       {tag}
                     </button>
                   ))}
@@ -240,13 +288,14 @@ export default function ProfilePage() {
 
               {/* Actions */}
               <div className="flex justify-end gap-3">
-                <button onClick={() => setOpenEdit(false)} className="text-sm text-muted-foreground">
-                  Cancel
-                </button>
-
                 <button
                   onClick={() => setOpenEdit(false)}
-                  className="px-5 py-2 rounded-[12px] bg-[#A7D7A0] text-sm font-medium hover:bg-[#8BC98B]">
+                  className="text-sm text-muted-foreground hover:text-foreground transition">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => setOpenEdit(false)}
+                  className="px-5 py-2 rounded-[12px] bg-[#A7D7A0] text-sm font-medium hover:bg-[#8BC98B] transition">
                   Save
                 </button>
               </div>

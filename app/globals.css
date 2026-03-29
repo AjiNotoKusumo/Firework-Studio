@@ -1,50 +1,51 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@plugin "daisyui";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
   /* Nature-themed colors */
-  --background: #F9FFF9;
-  --foreground: #2E2E2E;
+  --background: #f9fff9;
+  --foreground: #2e2e2e;
   --card: #ffffff;
-  --card-foreground: #2E2E2E;
+  --card-foreground: #2e2e2e;
   --popover: #ffffff;
-  --popover-foreground: #2E2E2E;
-  --primary: #A7D7A0;
-  --primary-foreground: #2E2E2E;
-  --secondary: #E8F5E9;
-  --secondary-foreground: #2E2E2E;
-  --muted: #E8F5E9;
-  --muted-foreground: #6B7280;
-  --accent: #FFD54F;
-  --accent-foreground: #2E2E2E;
+  --popover-foreground: #2e2e2e;
+  --primary: #a7d7a0;
+  --primary-foreground: #2e2e2e;
+  --secondary: #e8f5e9;
+  --secondary-foreground: #2e2e2e;
+  --muted: #e8f5e9;
+  --muted-foreground: #6b7280;
+  --accent: #ffd54f;
+  --accent-foreground: #2e2e2e;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --border: #d1e7d0;
   --input: #d1e7d0;
-  --ring: #A7D7A0;
-  --chart-1: #A7D7A0;
-  --chart-2: #CFEFFF;
-  --chart-3: #FFD54F;
-  --chart-4: #8D6E63;
-  --chart-5: #81C784;
+  --ring: #a7d7a0;
+  --chart-1: #a7d7a0;
+  --chart-2: #cfefff;
+  --chart-3: #ffd54f;
+  --chart-4: #8d6e63;
+  --chart-5: #81c784;
   --radius: 1.25rem;
   --sidebar: #ffffff;
-  --sidebar-foreground: #2E2E2E;
-  --sidebar-primary: #A7D7A0;
-  --sidebar-primary-foreground: #2E2E2E;
-  --sidebar-accent: #E8F5E9;
-  --sidebar-accent-foreground: #2E2E2E;
+  --sidebar-foreground: #2e2e2e;
+  --sidebar-primary: #a7d7a0;
+  --sidebar-primary-foreground: #2e2e2e;
+  --sidebar-accent: #e8f5e9;
+  --sidebar-accent-foreground: #2e2e2e;
   --sidebar-border: #d1e7d0;
-  --sidebar-ring: #A7D7A0;
-  
+  --sidebar-ring: #a7d7a0;
+
   /* Custom nature tokens */
-  --nature-green: #A7D7A0;
-  --nature-green-light: #E8F5E9;
-  --nature-sky: #CFEFFF;
-  --nature-sun: #FFD54F;
-  --nature-earth: #8D6E63;
+  --nature-green: #a7d7a0;
+  --nature-green-light: #e8f5e9;
+  --nature-sky: #cfefff;
+  --nature-sun: #ffd54f;
+  --nature-earth: #8d6e63;
 }
 
 @theme inline {
@@ -86,7 +87,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  
+
   /* Nature theme colors */
   --color-nature-green: var(--nature-green);
   --color-nature-green-light: var(--nature-green-light);
