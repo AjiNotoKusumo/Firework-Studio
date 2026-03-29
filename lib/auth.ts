@@ -35,5 +35,17 @@ export const auth = betterAuth({
             allowDifferentEmails: true
         }
     },
+    user: {
+        additionalFields: {
+            interests: {
+                type: "string[]", 
+                required: false,
+            },
+            onboardingComplete: {
+                type: "boolean",
+                defaultValue: false
+            }
+        }
+    },
     trustedOrigins: ["http://127.0.0.1:3000", "http://localtest.me:3000"]
 });

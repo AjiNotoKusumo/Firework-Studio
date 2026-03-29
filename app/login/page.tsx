@@ -17,7 +17,6 @@ const sideImages = [
 ];
 
 export default function LoginPage() {
-
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -33,7 +32,8 @@ export default function LoginPage() {
   const twitterSignIn = async () => {
     const data = await authClient.signIn.social({
         provider: "twitter",
-        callbackURL: "/"
+        callbackURL: "/",
+        newUserCallbackURL: "/onboarding"
     })
   }
 

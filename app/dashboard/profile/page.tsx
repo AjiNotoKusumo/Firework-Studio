@@ -1,8 +1,10 @@
 'use client';
 
+import { signOut } from '@/lib/auth-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Instagram, Twitter, Plus, LogOut } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 const interests = ['marketing', 'viral', 'content', 'growth', 'branding', 'social media'];
@@ -21,6 +23,7 @@ const accounts = [
 ];
 
 export default function ProfilePage() {
+  const router = useRouter()
   const [openConnect, setOpenConnect] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [userInterests, setUserInterests] = useState<string[]>(['marketing', 'viral', 'content']);
@@ -39,6 +42,11 @@ export default function ProfilePage() {
     }
   };
 
+  const handleLogout = () => {
+    signOut()
+    router.push("/");
+  }
+
   const removeInterest = (tag: string) => {
     setUserInterests(userInterests.filter((t) => t !== tag));
   };
@@ -53,7 +61,7 @@ export default function ProfilePage() {
       <div className="mx-auto max-w-4xl space-y-10">
         {/* Logout */}
         <div className="flex justify-end">
-          <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition bg-amber-300 px-3 py-2 rounded-[12px]">
+          <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition bg-amber-300 px-3 py-2 rounded-[12px]">
             <LogOut className="h-4 w-4" />
             Logout
           </button>
