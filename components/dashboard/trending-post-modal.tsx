@@ -2,21 +2,7 @@
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Heart, MessageCircle, Share2, Bookmark, ExternalLink, Instagram, Twitter, Sparkles } from 'lucide-react';
-
-interface TrendingPost {
-  id: string;
-  imageUrl: string;
-  caption: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  status: 'trending' | 'growing' | 'stable';
-  platform: 'instagram' | 'twitter';
-  author: {
-    name: string;
-    avatar?: string;
-  };
-}
+import { TrendingPost } from '@/types';
 
 interface TrendingPostModalProps {
   post: TrendingPost | null;
@@ -167,7 +153,9 @@ export function TrendingPostModal({ post, open, onOpenChange, onSave, isSaved = 
               </button>
 
               {/* Original — fixed width */}
-              <button className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] border border-border bg-background hover:bg-secondary text-xs font-medium transition-colors text-foreground flex-shrink-0">
+              <button
+                className="flex items-center gap-1.5 px-3 py-2 rounded-[10px] border border-border bg-background hover:bg-secondary text-xs font-medium transition-colors text-foreground flex-shrink-0"
+                onClick={() => window.open(post.url, '_blank')}>
                 <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
                 Original
               </button>

@@ -8,3 +8,19 @@ export type ConceptPromptType = {
   platform: "instagram" | "twitter",
   referencePosts: string[]
 }
+
+export interface TrendingPost {
+  id: string;
+  imageUrl: string;
+  caption: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  status: 'trending' | 'growing' | 'stable';
+  platform: 'instagram' | 'twitter';
+  author: {
+    name: string;
+    avatar?: string;
+  };
+  url: string;
+}

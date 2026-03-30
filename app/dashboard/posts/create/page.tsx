@@ -8,21 +8,7 @@ import { TrendingPostModal } from '@/components/dashboard/trending-post-modal';
 import AiSuggestModal from '@/components/dashboard/ai-suggest-modal';
 import { type Post } from '@/lib/posts-data';
 import { TrendingUp, Flame } from 'lucide-react';
-
-interface TrendingPost {
-  id: string;
-  imageUrl: string;
-  caption: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  status: 'trending' | 'growing' | 'stable';
-  platform: 'instagram' | 'twitter';
-  author: {
-    name: string;
-    avatar?: string;
-  };
-}
+import { TrendingPost } from '@/types';
 
 const statusConfig = {
   trending: { label: 'Trending', className: 'bg-[#FFD54F] text-[#2E2E2E]' },
@@ -62,6 +48,7 @@ export default function CreatePostPage() {
       status: 'trending',
       platform: 'instagram',
       author: { name: 'Creator A' },
+      url: 'https://example.com/post/1'
     },
     {
       id: '2',
@@ -74,6 +61,7 @@ export default function CreatePostPage() {
       status: 'growing',
       platform: 'instagram',
       author: { name: 'Creator B' },
+      url: 'https://example.com/post/2'
     },
     {
       id: '3',
@@ -85,6 +73,7 @@ export default function CreatePostPage() {
       status: 'stable',
       platform: 'twitter',
       author: { name: 'Creator C' },
+      url: 'https://example.com/post/3'
     },
   ];
 

@@ -7,6 +7,7 @@ const nextConfig = {
     unoptimized: true,
   },
   allowedDevOrigins: ['localtest.me'],
-}
+  serverExternalPackages: ['@google/genai', 'apify-client'],
+};
 
 export default nextConfig;

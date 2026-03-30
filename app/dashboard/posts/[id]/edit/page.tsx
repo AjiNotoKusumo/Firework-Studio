@@ -119,10 +119,6 @@ export default function EditPostPage() {
         }
         const data = await response.json()
 
-
-        const localTimeStr = data.scheduledAt.slice(0, -1); 
-        console.log("Fetched post data:", new Date(localTimeStr).toLocaleString())
-
         setFormData({
           images: data.images || [],
           caption: data.caption || '',
