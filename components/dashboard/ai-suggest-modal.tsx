@@ -67,9 +67,11 @@ const TONE_SUGGESTIONS = ['motivational', 'funny', 'aggressive', 'calm', 'inform
 export default function GeneratePostModal({
   open,
   onOpenChange,
+  onSubmit,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onSubmit: (data: any) => void;
 }) {
   const [form, setForm] = useState<GeneratePostInput>({
     type: 'video',

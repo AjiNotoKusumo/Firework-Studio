@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { authClient } from '@/lib/auth-client';
 
 const suggestions: string[] = [
   'Travel',
@@ -50,6 +52,7 @@ const positions: Position[] = [
 ];
 
 export default function InterestPage() {
+  const router = useRouter()
   const [input, setInput] = useState<string>('');
   const [selected, setSelected] = useState<string[]>([]);
   const scribbleColors: string[] = [
@@ -60,6 +63,30 @@ export default function InterestPage() {
     '#B983FF', // purple
     '#FF9F1C', // orange
   ];
+
+  const handleOnboarding = async () => {
+    try {
+      if(selected.length === 0) {
+        throw new Error("Please select at least one interest to continue.")
+      }
+
+      const { data, error } = await authClient.updateUser({
+        interests: selected, // Better Auth handles the array/JSON stringifying
+        onboardingComplete: true,
+      });
+
+      if (!error) {
+        // Force a router refresh so the middleware sees the updated session
+        router.refresh(); 
+        router.push("/");
+      } else {
+        throw new Error( error.message);
+      }
+    } catch (error) {
+      console.log("Failed to update user:", error);
+    }
+    
+  };
 
   const addTag = (tag: string) => {
     const clean = tag.trim();
@@ -158,7 +185,7 @@ export default function InterestPage() {
         </div>
       </div>
       <div>
-        <button className="mt-6 bg-[#A7D7A0] text-[#2E2E2E] px-6 py-3 rounded-full font-medium hover:bg-[#8BC98B] transition-colors hover:scale-110">
+        <button onClick={() => handleOnboarding()} className="mt-6 bg-[#A7D7A0] text-[#2E2E2E] px-6 py-3 rounded-full font-medium hover:bg-[#8BC98B] transition-colors hover:scale-110">
           Continue
         </button>
       </div>

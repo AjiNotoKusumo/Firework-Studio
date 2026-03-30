@@ -12,6 +12,22 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Platform {
+  TWITTER
+  INSTAGRAM
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
 model User {
   id            String    @id
   name          String
@@ -24,6 +40,7 @@ model User {
   onboardingComplete Boolean @default(false)
   sessions      Session[]
   accounts      Account[]
+  posts         Post[]
 
   @@unique([email])
   @@map("user")
@@ -84,4 +101,38 @@ model SoundEffect {
   description String?
   category    String?
   embedding   Unsupported("vector(768)")?
+}
+
+model Post {
+  id            String   @id @default(uuid())
+  userId        String
+
+  caption       String?
+  hashtags      String[] @default([]) // simple and useful
+
+  platform      Platform 
+  status        PostStatus @default(DRAFT)
+
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  media         PostMedia[]
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PostMedia {
+  id        String   @id @default(uuid())
+  postId    String
+
+  url       String
+  type      MediaType @default(IMAGE)
+  order     Int
+
+  createdAt DateTime @default(now())
+
+  post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 }

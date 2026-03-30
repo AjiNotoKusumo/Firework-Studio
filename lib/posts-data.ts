@@ -6,6 +6,7 @@ export interface Post {
   scheduledDate?: string;
   publishedDate?: string;
   platform: 'instagram' | 'twitter' | 'facebook';
+  postType?: 'post';
   strategy?: string;
   autoPost: boolean;
   shareToPlatforms: string[];

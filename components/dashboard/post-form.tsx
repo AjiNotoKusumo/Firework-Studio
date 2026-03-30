@@ -225,7 +225,7 @@ export function PostForm({ initialData, mode, formData, setFormData }: PostFormP
           ref={textareaRef}
           value={formData.caption}
           onChange={(e) => setFormData((prev: any) => ({ ...prev, caption: e.target.value }))}
-          onClick={handleKeyUp}
+          onClick={(e) => handleKeyUp(e as any)}
           onKeyUp={handleKeyUp}
           placeholder="Write your caption..."
           className="w-full h-28 rounded-[12px] border bg-background p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"

@@ -1,11 +1,11 @@
 'use client';
 
-import { signOut } from '@/lib/auth-client';
+import { authClient, signOut, useSession } from '@/lib/auth-client';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Instagram, Twitter, Plus, LogOut, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const accounts = [
   { platform: 'Instagram', username: '@indra.creates', icon: Instagram },
@@ -31,8 +31,41 @@ export default function ProfilePage() {
   const router = useRouter()
   const [openConnect, setOpenConnect] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
-  const [userInterests, setUserInterests] = useState<string[]>(['marketing', 'viral', 'content']);
+  const [userInterests, setUserInterests] = useState<string[]>([]);
   const [input, setInput] = useState('');
+  const { data: session, isPending } = useSession();
+
+  useEffect(() => {
+    if (!isPending && !session?.user) {
+      router.push("/sign-in");
+    }
+
+    setUserInterests(session?.user?.interests || []);
+  }, [isPending, session, router]);
+
+  const handleInterestsUpdate = async () => {
+    try {
+      if(userInterests.length === 0) {
+        throw new Error("Please select at least one interest to continue.")
+      }
+
+      const { data, error } = await authClient.updateUser({
+        interests: userInterests, // Better Auth handles the array/JSON stringifying
+        onboardingComplete: true,
+      });
+
+      if (!error) {
+        // Force a router refresh so the middleware sees the updated session
+        router.refresh(); 
+        setOpenEdit(false)
+      } else {
+        throw new Error( error.message);
+      }
+    } catch (error) {
+      console.log("Failed to update user:", error);
+    }
+    
+  };
 
   const normalize = (t: string) => t.trim().toLowerCase();
 
@@ -70,7 +103,7 @@ export default function ProfilePage() {
             <Image src="/firework.png" alt="avatar" width={50} height={50} />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Indra Sanjaya</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{session?.user?.name}</h1>
             <p className="text-sm text-muted-foreground">Building viral content, one post at a time 🌱</p>
           </div>
         </motion.div>
@@ -294,7 +327,7 @@ export default function ProfilePage() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => setOpenEdit(false)}
+                  onClick={() => handleInterestsUpdate()}
                   className="px-5 py-2 rounded-[12px] bg-[#A7D7A0] text-sm font-medium hover:bg-[#8BC98B] transition">
                   Save
                 </button>

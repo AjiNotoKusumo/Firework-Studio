@@ -223,7 +223,7 @@ export default function CreatePostPage() {
       <AiSuggestModal
         open={isAiModalOpen}
         onOpenChange={setIsAiModalOpen}
-        onSubmit={(data) => {
+        onSubmit={(data : any) => {
           console.log('AI INPUT:', data);
         }}
       />

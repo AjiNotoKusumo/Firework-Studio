@@ -1,9 +1,8 @@
 "use client"
 
 import { Sidebar } from "@/components/dashboard/sidebar"
-import { useSession } from "@/lib/auth-client";
 import { usePathname, useRouter } from "next/navigation"
-import { useEffect } from "react";
+
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   "/dashboard/metrics": { 
@@ -55,16 +54,10 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const router = useRouter()
-  const { data: session, isPending } = useSession();
+
   const pathname = usePathname()
   const pageInfo = getPageInfo(pathname)
 
-  useEffect(() => {
-    if (!isPending && !session?.user) {
-      router.push("/login"); 
-    } 
-  }, [isPending, session, router]); 
 
   return (
     <div className="min-h-screen bg-background">
