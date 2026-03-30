@@ -138,23 +138,33 @@ export default function InterestPage() {
         ))}
         {/* 🧠 Grid Floating Tags */}
         <div className="relative z-10 flex flex-wrap gap-3 justify-center items-center h-full">
-          {suggestions.map((tag, i) => (
-            <motion.button
-              key={tag}
-              onClick={() => addTag(tag)}
-              className="px-3 py-1 text-sm rounded-full bg-gray-100 hover:bg-[#A7D7A0] transition shadow-sm"
-              animate={{
-                y: [0, -4, 0, 4, 0],
-              }}
-              transition={{
-                duration: 3 + (i % 3),
-                repeat: Infinity,
-                ease: 'easeInOut',
-                delay: i * 0.15,
-              }}>
-              {tag}
-            </motion.button>
-          ))}
+          {suggestions.map((tag, i) => {
+            const color = scribbleColors[i % scribbleColors.length];
+
+            return (
+              <motion.button
+                key={tag}
+                onClick={() => addTag(tag)}
+                className="px-3 py-1 text-sm rounded-full transition shadow-sm"
+                style={{
+                  backgroundColor: color,
+                }}
+                whileHover={{
+                  scale: 1.05,
+                }}
+                animate={{
+                  y: [0, -4, 0, 4, 0],
+                }}
+                transition={{
+                  duration: 3 + (i % 3),
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                  delay: i * 0.15,
+                }}>
+                {tag}
+              </motion.button>
+            );
+          })}
         </div>
       </div>
       <div>
