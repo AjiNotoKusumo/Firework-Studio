@@ -37,7 +37,7 @@ const formatNumber = (n: number) => {
 };
 
 export default function CreatePostPage() {
-  const [formData, setFormData] = useState<Partial<Post>>({
+  const [formData, setFormData] = useState<FormData>({
     images: [],
     caption: '',
     platform: 'instagram',

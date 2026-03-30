@@ -9,8 +9,8 @@ import { type Post, sampleImages, strategies } from '@/lib/posts-data';
 interface PostFormProps {
   initialData?: Post;
   mode: 'create' | 'edit';
-  formData: any;
-  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  formData: FormData;
+  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
 }
 
 interface User {
