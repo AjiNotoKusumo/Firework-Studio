@@ -13,19 +13,24 @@ datasource db {
 }
 
 enum Platform {
-  TWITTER
-  INSTAGRAM
+  twitter
+  instagram
+}
+
+enum PostType {
+  video
+  carousel
 }
 
 enum PostStatus {
-  DRAFT
-  SCHEDULED
-  PUBLISHED
+  draft
+  scheduled
+  published
 }
 
 enum MediaType {
-  IMAGE
-  VIDEO
+  image 
+  video
 }
 
 model User {
@@ -110,8 +115,10 @@ model Post {
   caption       String?
   hashtags      String[] @default([]) // simple and useful
 
+
+  postType      PostType @default(carousel)
   platform      Platform 
-  status        PostStatus @default(DRAFT)
+  status        PostStatus @default(draft)
 
   scheduledAt   DateTime?
   publishedAt   DateTime?
@@ -129,7 +136,7 @@ model PostMedia {
   postId    String
 
   url       String
-  type      MediaType @default(IMAGE)
+  type      MediaType @default(image)
   order     Int
 
   createdAt DateTime @default(now())

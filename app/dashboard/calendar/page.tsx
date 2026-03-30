@@ -23,7 +23,7 @@ export default function CalendarPage() {
         if (response.ok) {
           const data = await response.json()
           // Filter to only scheduled and published posts with dates
-          const postsWithDates = data.filter((p: Post) => p.scheduledDate || p.publishedDate)
+          const postsWithDates = data.filter((p: Post) => p.scheduledAt || p.publishedDate)
           setPosts(postsWithDates)
         }
       } catch (error) {
@@ -48,7 +48,7 @@ export default function CalendarPage() {
   const calendarEvents = posts.map(post => ({
     id: post.id,
     title: post.caption.substring(0, 30) + (post.caption.length > 30 ? "..." : ""),
-    date: post.scheduledDate || post.publishedDate,
+    date: post.scheduledAt || post.publishedDate,
     backgroundColor: post.status === "published" 
       ? "#A7D7A0" 
       : post.platform === "instagram" 

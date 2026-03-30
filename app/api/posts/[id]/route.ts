@@ -1,54 +1,67 @@
 import { NextResponse } from "next/server"
 import { mockPosts, type Post } from "@/lib/posts-data"
+import PostModel from "@/lib/models/PostModel";
+import { auth } from "@/lib/auth";
 
 // In-memory store (would be a database in production)
 let posts = [...mockPosts]
 
 export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params
-  const post = posts.find(p => p.id === id)
-  
-  if (!post) {
-    return NextResponse.json({ error: "Post not found" }, { status: 404 })
-  }
-  
-  return NextResponse.json(post)
-}
-
-export async function PUT(
-  request: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth.api.getSession({
+      headers: req.headers // This is now automatically populated with the cookies
+    });
+
+    if (!session || !session.user) {
+      throw { message: 'Unauthorized', status: 401 };
+    }
+
     const { id } = await params
-    const body = await request.json()
+  
+    const post = await PostModel.getPostById(id)
     
-    const index = posts.findIndex(p => p.id === id)
-    
-    if (index === -1) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 })
+    return NextResponse.json(post)
+  } catch (error) {
+    let err = error as { message: string, status: number }
+    console.log("Error fetching post:", error)
+    return Response.json({ error: err.message || 'Failed to fetch post' }, { status: err.status || 500 })
+  }
+  
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth.api.getSession({
+      headers: req.headers // This is now automatically populated with the cookies
+    });
+
+    if (!session || !session.user) {
+      throw { message: 'Unauthorized', status: 401 };
     }
+
+    const { id } = await params
+    const postData = await req.json()
     
-    const updatedPost: Post = {
-      ...posts[index],
-      images: body.images ?? posts[index].images,
-      caption: body.caption ?? posts[index].caption,
-      status: body.status ?? posts[index].status,
-      scheduledDate: body.scheduledDate ?? posts[index].scheduledDate,
-      platform: body.platform ?? posts[index].platform,
-      strategy: body.strategy ?? posts[index].strategy,
-      autoPost: body.autoPost ?? posts[index].autoPost,
-      shareToPlatforms: body.shareToPlatforms ?? posts[index].shareToPlatforms,
-    }
+    const updatedPost = await PostModel.updatePost(id, {
+      userId: session.user.id,
+      scheduledAt: postData.scheduledAt,
+      caption: postData.caption,
+      hashtags: postData.hashtags,
+      platform: postData.platform,
+      postType: postData.postType,
+      status: postData.status
+    })
     
-    posts[index] = updatedPost
-    
-    return NextResponse.json(updatedPost)
-  } catch {
-    return NextResponse.json({ error: "Failed to update post" }, { status: 500 })
+    return Response.json({"message": "Post updated successfully"}, { status: 200 })
+  } catch (error) {
+    let err = error as { message: string, status: number }
+    return Response.json({"message": err.message || "Failed to update post"}, { status: err.status || 500 })
   }
 }
 
@@ -56,14 +69,16 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params
-  const index = posts.findIndex(p => p.id === id)
-  
-  if (index === -1) {
-    return NextResponse.json({ error: "Post not found" }, { status: 404 })
+  try {
+    const { id } = await params
+    
+    const deletePost = await PostModel.deletePost(id)
+    
+    return Response.json({"message": "Post deleted successfully"}, { status: 200 })
+  } catch (error) {
+    let err = error as { message: string, status: number }
+    return Response.json({"message": err.message || "Failed to delete post"}, { status: err.status || 500 })
   }
+
   
-  posts = posts.filter(p => p.id !== id)
-  
-  return NextResponse.json({ success: true })
 }

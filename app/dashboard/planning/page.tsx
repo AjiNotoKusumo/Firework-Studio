@@ -11,21 +11,24 @@ export default function PlanningPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        const response = await fetch("/api/posts")
-        if (response.ok) {
-          const data = await response.json()
-          setPosts(data)
-        }
-      } catch (error) {
-        console.error("Failed to fetch posts:", error)
-      } finally {
-        setLoading(false)
+  const fetchPosts = async () => {
+    try {
+      const response = await fetch("/api/posts")
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch posts")
       }
-    }
 
+      const data = await response.json()
+      setPosts(data)
+    } catch (error) {
+      console.error("Failed to fetch posts:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchPosts()
   }, [])
 
@@ -49,14 +52,14 @@ export default function PlanningPage() {
           >
             <div className="relative aspect-square rounded-[16px] overflow-hidden bg-secondary">
               <Image
-                src={post.images[0]}
+                src={post.media && post.media?.length > 0 ? post.media[0].url : "https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg"}
                 alt={post.caption}
                 fill
                 className="object-cover"
               />
-              {post.images.length > 1 && (
+              {post.media!.length > 1 && (
                 <div className="absolute top-3 right-3 rounded-full bg-black/50 px-2 py-1 text-xs text-white">
-                  +{post.images.length - 1}
+                  +{post.media!.length - 1}
                 </div>
               )}
               <div className={`absolute top-3 left-3 rounded-full px-3 py-1 text-xs font-medium ${
@@ -70,18 +73,18 @@ export default function PlanningPage() {
               </div>
             </div>
             <p className="mt-4 text-sm text-foreground line-clamp-2">{post.caption}</p>
-            {post.scheduledDate && (
+            {post.scheduledAt && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Scheduled for {new Date(post.scheduledDate).toLocaleDateString('en-US', { 
+                Scheduled for {new Date(post.scheduledAt).toLocaleDateString('en-US', { 
                   month: 'short', 
                   day: 'numeric',
                   year: 'numeric'
                 })}
               </p>
             )}
-            {post.publishedDate && (
+            {post.scheduledAt && Date.now() >= new Date(post.scheduledAt).getTime() && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Published {new Date(post.publishedDate).toLocaleDateString('en-US', { 
+                Published at {new Date(post.scheduledAt).toLocaleDateString('en-US', { 
                   month: 'short', 
                   day: 'numeric',
                   year: 'numeric'

@@ -1,14 +1,16 @@
 export interface Post {
   id: string;
   images: string[];
+  media?: any[];
   caption: string;
   status: 'draft' | 'scheduled' | 'published';
-  scheduledDate?: string;
+  scheduledAt?: string;
   publishedDate?: string;
-  platform: 'instagram' | 'twitter' | 'facebook';
-  postType?: 'post';
+  platform: 'instagram' | 'twitter' ;
+  postType?: 'video' | 'carousel';
   strategy?: string;
   autoPost: boolean;
+  hashtags?: string[];
   shareToPlatforms: string[];
   metrics?: {
     likes: number;
@@ -76,7 +78,7 @@ export const mockPosts: Post[] = [
     caption:
       'Coastal therapy: where the waves meet your worries and wash them away. Nothing like the sound of the ocean to reset your mind.',
     status: 'scheduled',
-    scheduledDate: '2026-04-02',
+    scheduledAt: '2026-04-02',
     platform: 'instagram',
     strategy: 'growth',
     autoPost: true,
@@ -93,7 +95,7 @@ export const mockPosts: Post[] = [
     caption:
       "Golden hour in the meadows - nature's perfect lighting for content creation. This is why I wake up early.",
     status: 'scheduled',
-    scheduledDate: '2026-03-28',
+    scheduledAt: '2026-03-28',
     platform: 'twitter',
     strategy: 'awareness',
     autoPost: true,
@@ -153,9 +155,3 @@ export const sampleImages = [
   'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&h=800&fit=crop',
 ];
 
-export const strategies = [
-  { value: 'engagement', label: 'Engagement' },
-  { value: 'growth', label: 'Growth' },
-  { value: 'awareness', label: 'Awareness' },
-  { value: 'conversion', label: 'Conversion' },
-];

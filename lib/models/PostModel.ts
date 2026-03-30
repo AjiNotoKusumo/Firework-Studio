@@ -29,8 +29,35 @@ export default class PostModel {
         return results;
     }
 
+    static async getAllPostsByUser(userId: string) {
+        const posts = await prisma.post.findMany({
+            where: { userId },
+            include: {
+                media: true
+            }
+        });
+
+        return posts;
+    }
+
+    static async getPostById(postId: string) {
+        const post = await prisma.post.findUnique({
+            where: { id: postId },
+            include: {
+                media: true
+            }
+        });
+
+        if (!post) {
+            throw { message: "Post not found", status: 404 };
+        }
+        
+        return post;
+    }
+
+
     static async createPost(data: any) {
-        const { userId, caption, hashtags, platform, status, scheduledAt } = data;
+        const { userId, caption, hashtags, platform, status, postType, scheduledAt } = data;
 
         if (!userId) {
             throw { message: "userId is required to create a post", status: 400 };
@@ -40,17 +67,77 @@ export default class PostModel {
             throw { message: "platform is required to create a post", status: 400 };
         }
 
-        const user = await prisma.post.create({
+        const post = await prisma.post.create({
+            data: {
+                userId,
+                caption,
+                hashtags,
+                platform,
+                postType,
+                status,
+                scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+            },
+        })
+
+        return post;
+    }   
+
+    static async updatePost(postId: string, data: any) {
+        const { userId, caption, hashtags, platform, status, postType, scheduledAt } = data;
+
+        if (!postId) {
+            throw { message: "postId is required to update a post", status: 400 };
+        }
+
+        if (!userId) {
+            throw { message: "userId is required to update a post", status: 400 };
+        }
+
+        if (!platform) {
+            throw { message: "platform is required to update a post", status: 400 };
+        }
+
+        const postExists = await prisma.post.findUnique({
+            where: { id: postId },
+        });
+
+        if (!postExists) {
+            throw { message: "Post not found", status: 404 };
+        }
+
+        const post = await prisma.post.update({
+            where: { id: postId },
             data: {
                 userId,
                 caption,
                 hashtags,
                 platform,
                 status,
+                postType,
                 scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
             },
-        })
+        });
 
-        return user;
-    }   
+        return post;
+    }
+
+    static async deletePost(postId: string) {
+        if (!postId) {
+            throw { message: "postId is required to delete a post", status: 400 };
+        }
+
+        const post = await prisma.post.findUnique({
+            where: { id: postId },
+        });
+
+        if (!post) {
+            throw { message: "Post not found", status: 404 };
+        }
+
+        await prisma.post.delete({
+            where: { id: postId },
+        });
+
+        return { message: "Post deleted successfully" };
+    }
 }

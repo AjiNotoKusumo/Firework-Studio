@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Plus, ImageIcon, ChevronRight, AtSign, Link2, MapPin, Hash, CalendarDays, Clock, Layers } from 'lucide-react';
-import { type Post, sampleImages, strategies } from '@/lib/posts-data';
+import { type Post, sampleImages } from '@/lib/posts-data';
+import Swal from 'sweetalert2';
 
 interface PostFormProps {
   initialData?: Post;
   mode: 'create' | 'edit';
-  formData: FormData;
-  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  formData: any;
+  setFormData: React.Dispatch<React.SetStateAction<any>>;
 }
 
 interface User {
@@ -32,12 +33,14 @@ export function PostForm({ initialData, mode, formData, setFormData }: PostFormP
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [postId, setPostId] = useState<any>('');
 
+  const [hashtags, setHashtags] = useState<string[]>([]);
   const [activeDropdown, setActiveDropdown] = useState<'mention' | 'hashtag' | 'link' | 'location' | null>(null);
   const [dropdownFilter, setDropdownFilter] = useState('');
   const [linkInput, setLinkInput] = useState('');
 
-  const isScheduled = !!formData.scheduledDate;
+  const isScheduled = !!formData.scheduledAt;
 
   const insertAtCursor = (insertText: string) => {
     if (!textareaRef.current) return;
@@ -71,14 +74,32 @@ export function PostForm({ initialData, mode, formData, setFormData }: PostFormP
       const payload = {
         ...formData,
         status: isScheduled ? 'scheduled' : 'draft',
-        shareToPlatforms: formData.shareToFacebook ? ['facebook'] : [],
+        hashtags: hashtags,
       };
-      const url = mode === 'edit' && initialData ? `/api/posts/${initialData.id}` : '/api/posts';
-      await fetch(url, {
-        method: mode === 'edit' ? 'PUT' : 'POST',
+      const url = mode === 'edit' && initialData ? `/api/posts/${initialData.id}` : `/api/posts/${postId}`;
+      const response = await fetch(`${url}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+
+      if(!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message);
+      }
+
+      if (mode === 'create') {
+        localStorage.removeItem("creatingPostId")
+      }
+
+      Swal.fire({ 
+        title: 'Saved!', 
+        text: 'Your post has been saved.', 
+        icon: 'success',
+        background: '#e5ecdf', 
+        color: '#727070'
+      });
+
       router.push('/dashboard/planning');
       router.refresh();
     } catch (err) {
@@ -113,8 +134,100 @@ export function PostForm({ initialData, mode, formData, setFormData }: PostFormP
     }
   };
 
+  const handleCancel = async () => {
+    try {
+      const conirmation = await Swal.fire({
+        title: 'Are you sure?',
+        text: 'Any unsaved changes will be lost.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'Cancel',
+        background: '#e5ecdf', 
+        color: '#727070' 
+      })
+
+      if(!conirmation.isConfirmed) {
+        return Swal.fire({ 
+          title: 'Cancelled', 
+          text: 'You can continue editing your post.', 
+          icon: 'error', 
+          background: '#e5ecdf', 
+          color: '#727070' 
+        });
+      }
+
+      if (mode === 'create' && postId) {
+        const response = await fetch(`/api/posts/${postId}`, { method: 'DELETE' });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message);
+        }
+
+        localStorage.removeItem("creatingPostId")
+      }
+      
+      router.push('/dashboard/planning');
+    } catch (error) {
+      const message = (error as Error).message
+      const redirect = await Swal.fire({ 
+          title: 'Failed', 
+          text: message || 'Failed to cancel post creation', 
+          icon: 'error', 
+          background: '#e5ecdf', 
+          color: '#727070'  
+      });
+    }
+    
+  }
+
+
+  const createInstance = async () => {
+    try {
+      if (mode === 'create') {
+        const existingId = localStorage.getItem("creatingPostId")
+
+        if (existingId && existingId !== "pending") {
+          setPostId(existingId)
+          return
+        }
+
+        if (existingId === "pending") {
+          return // 🚫 STOP here
+        }
+
+        localStorage.setItem("creatingPostId", "pending")
+
+        const res = await fetch('/api/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+
+        if(!res.ok) {
+          throw new Error('Failed to create post instance');
+        }
+
+        const post = await res.json()
+
+        localStorage.setItem("creatingPostId", post.data.id)
+        setPostId(post.data.id)
+      }
+    } catch (error) {
+      console.log('Error creating post instance:', error);
+      router.push('/dashboard/planning');
+    }
+  }
+
   const filteredUsers = dummyUsers.filter((u) => u.username.includes(dropdownFilter));
   const filteredHashtags = dummyHashtags.filter((tag) => tag.includes(dropdownFilter));
+
+  useEffect(() => {
+    if (mode === 'create') {
+      createInstance();
+    }
+  }, [])
 
   return (
     <div className="flex flex-col h-full relative">
@@ -161,6 +274,7 @@ export function PostForm({ initialData, mode, formData, setFormData }: PostFormP
               value={formData.platform}
               onChange={(e) => setFormData((prev: any) => ({ ...prev, platform: e.target.value }))}
               className="rounded-[10px] border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
+              <option value="" disabled>Select Platform</option>
               <option value="instagram">Instagram</option>
               <option value="twitter">Twitter</option>
             </select>
@@ -171,9 +285,9 @@ export function PostForm({ initialData, mode, formData, setFormData }: PostFormP
               value={formData.postType}
               onChange={(e) => setFormData((prev: any) => ({ ...prev, postType: e.target.value }))}
               className="rounded-[10px] border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
-              <option value="post">Post</option>
-              <option value="stories">Stories</option>
-              <option value="reels">Reels</option>
+              <option value="" disabled>Select Type</option>
+              <option value="carousel">Carousel</option>
+              <option value="video">Video</option>
             </select>
           </div>
         </div>
@@ -185,14 +299,15 @@ export function PostForm({ initialData, mode, formData, setFormData }: PostFormP
             </label>
             <input
               type="date"
-              value={formData.scheduledDate.split('T')[0] || ''}
+              value={formData.scheduledAt ? new Date(formData.scheduledAt).toLocaleDateString('en-CA') : ''}
               onChange={(e) => {
-                const date = e.target.value;
-                const time = formData.scheduledDate.split('T')[1] || '12:00';
-                setFormData((prev: any) => ({
-                  ...prev,
-                  scheduledDate: date ? `${date}T${time}` : '',
-                }));
+                const newDate = e.target.value;
+                const currentTime = formData.scheduledAt 
+                  ? new Date(formData.scheduledAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) 
+                  : '12:00';
+                
+                const local = new Date(`${newDate}T${currentTime}`);
+                setFormData((prev : any) => ({ ...prev, scheduledAt: local.toISOString() }));
               }}
               className="rounded-[10px] border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             />
@@ -203,14 +318,22 @@ export function PostForm({ initialData, mode, formData, setFormData }: PostFormP
             </label>
             <input
               type="time"
-              value={formData.scheduledDate.split('T')[1] || ''}
+              value={formData.scheduledAt 
+                ? new Date(formData.scheduledAt).toLocaleTimeString('en-GB', { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    hour12: false 
+                  }) 
+                : ''}
               onChange={(e) => {
-                const time = e.target.value;
-                const date = formData.scheduledDate.split('T')[0] || '';
-                setFormData((prev: any) => ({
-                  ...prev,
-                  scheduledDate: date ? `${date}T${time}` : '',
-                }));
+                const newTime = e.target.value; // "HH:mm"
+                const currentDate = formData.scheduledAt 
+                  ? new Date(formData.scheduledAt).toLocaleDateString('en-CA') 
+                  : new Date().toLocaleDateString('en-CA');
+
+                // Construct local date and convert to ISO once
+                const local = new Date(`${currentDate}T${newTime}`);
+                setFormData((prev : any) => ({ ...prev, scheduledAt: local.toISOString() }));
               }}
               className="rounded-[10px] border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             />
@@ -268,7 +391,7 @@ export function PostForm({ initialData, mode, formData, setFormData }: PostFormP
         {activeDropdown === 'hashtag' && (
           <div className="absolute z-10 mt-1 border rounded bg-white shadow w-64 max-h-32 overflow-y-auto">
             {filteredHashtags.map((tag) => (
-              <div key={tag} className="p-2 hover:bg-gray-100 cursor-pointer" onClick={() => insertAtCursor(`${tag} `)}>
+              <div key={tag} className="p-2 hover:bg-gray-100 cursor-pointer" onClick={() => {insertAtCursor(`${tag} `), setHashtags((prev) => [...prev, tag])}}>
                 {tag}
               </div>
             ))}
@@ -307,28 +430,10 @@ export function PostForm({ initialData, mode, formData, setFormData }: PostFormP
         )}
       </div>
 
-      {/* ── Strategy ── */}
-      <div className="px-5 py-4 border-b border-border">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1">
-          <Layers className="h-3 w-3" /> Strategy
-        </p>
-        <select
-          value={formData.strategy}
-          onChange={(e) => setFormData((prev: any) => ({ ...prev, strategy: e.target.value }))}
-          className="w-full rounded-[10px] bg-[#A7D7A0]/30 border border-[#A7D7A0] px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#A7D7A0]">
-          <option value="">Select a strategy...</option>
-          {strategies.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {/* ── Footer ── */}
       <div className="px-5 py-4 flex items-center justify-end gap-2">
         <button
-          onClick={() => router.back()}
+          onClick={handleCancel}
           className="px-4 py-2 border rounded-[10px] text-sm hover:bg-secondary transition-colors">
           Cancel
         </button>

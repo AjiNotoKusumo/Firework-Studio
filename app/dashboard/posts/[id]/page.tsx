@@ -13,12 +13,15 @@ import {
   Users, 
   TrendingUp,
   Instagram,
+  Twitter,
   Calendar,
   Edit3,
   Trash2
 } from "lucide-react"
 import { type Post } from "@/lib/posts-data"
 import { Spinner } from "@/components/ui/spinner"
+import { useSession } from "@/lib/auth-client"
+import Swal from "sweetalert2"
 
 function formatNumber(num: number): string {
   if (num >= 1000000) {
@@ -38,43 +41,77 @@ export default function ViewPostPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
+  const { data: session, isPending } = useSession();
+
+  const fetchPost = async () => {
+    try {
+      const response = await fetch(`/api/posts/${params.id}`)
+      if (!response.ok) {
+        throw new Error("Post not found")
+      }
+      const data = await response.json()
+      setPost(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load post")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true)
+      const conirmation = await Swal.fire({
+        title: 'Are you sure?',
+        text: 'This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'Cancel',
+        background: '#e5ecdf', 
+        color: '#727070' 
+      })
+
+      if(!conirmation.isConfirmed) {
+        return Swal.fire({ 
+          title: 'Cancelled', 
+          text: 'Your post is saved', 
+          icon: 'error', 
+          background: '#e5ecdf', 
+          color: '#727070' 
+        });
+      }
+
+      const response = await fetch(`/api/posts/${params.id}`, { method: 'DELETE' });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message);
+      }
+      
+      router.push('/dashboard/planning');
+      router.refresh();
+    } catch (error) {
+      const message = (error as Error).message
+      const redirect = await Swal.fire({ 
+          title: 'Failed', 
+          text: message || 'Failed to delete post', 
+          icon: 'error', 
+          background: '#e5ecdf', 
+          color: '#727070'  
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+    
+  }
+
 
   useEffect(() => {
-    const fetchPost = async () => {
-      try {
-        const response = await fetch(`/api/posts/${params.id}`)
-        if (!response.ok) {
-          throw new Error("Post not found")
-        }
-        const data = await response.json()
-        setPost(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load post")
-      } finally {
-        setLoading(false)
-      }
-    }
-
     if (params.id) {
       fetchPost()
     }
   }, [params.id])
-
-  const handleDelete = async () => {
-    if (!post || !confirm("Are you sure you want to delete this post?")) return
-    
-    setIsDeleting(true)
-    try {
-      const response = await fetch(`/api/posts/${post.id}`, { method: "DELETE" })
-      if (response.ok) {
-        router.push("/dashboard/planning")
-      }
-    } catch (err) {
-      console.error("Failed to delete post:", err)
-    } finally {
-      setIsDeleting(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -122,7 +159,7 @@ export default function ViewPostPage() {
             {/* Main Image */}
             <div className="relative aspect-square rounded-[16px] overflow-hidden bg-secondary mb-4">
               <Image
-                src={post.images[selectedImageIndex]}
+                src={post.media?.[selectedImageIndex] || "https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg"}
                 alt={post.caption}
                 fill
                 className="object-cover"
@@ -141,9 +178,9 @@ export default function ViewPostPage() {
             </div>
 
             {/* Thumbnails */}
-            {post.images.length > 1 && (
+            {post.media && post.media.length > 1 && (
               <div className="flex gap-3">
-                {post.images.map((img, index) => (
+                {post.media.map((img, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
@@ -175,17 +212,22 @@ export default function ViewPostPage() {
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
                   <span className="text-lg font-medium text-primary-foreground">
-                    {post.author.name.charAt(0)}
+                    {session?.user.name.charAt(0)}
                   </span>
                 </div>
                 <div>
-                  <p className="font-semibold text-foreground">{post.author.name}</p>
-                  <p className="text-sm text-muted-foreground">{post.author.handle}</p>
+                  <p className="font-semibold text-foreground">{session?.user.name}</p>
+                  <p className="text-sm text-muted-foreground">{post.postType}</p>
                 </div>
               </div>
               
               <div className="flex items-center gap-2">
-                <Instagram className="h-5 w-5 text-[#E1306C]" />
+                {post.platform === "instagram" ? (
+                  <Instagram className="h-5 w-5 text-[#E1306C]" />
+                ) : (
+                  <Twitter className="h-5 w-5 text-[#1DA1F2]" />
+                )}
+                
                 <span className="text-sm font-medium capitalize">{post.platform}</span>
               </div>
             </div>
@@ -196,11 +238,11 @@ export default function ViewPostPage() {
             </div>
 
             {/* Schedule Info */}
-            {post.scheduledDate && (
+            {post.scheduledAt && (
               <div className="flex items-center gap-2 py-4 border-t border-border">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  Scheduled for {new Date(post.scheduledDate).toLocaleDateString('en-US', {
+                  Scheduled for {new Date(post.scheduledAt).toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'long',
                     day: 'numeric',
@@ -210,11 +252,11 @@ export default function ViewPostPage() {
               </div>
             )}
 
-            {post.publishedDate && (
+            {post.scheduledAt && Date.now() >= new Date(post.scheduledAt).getTime() && (
               <div className="flex items-center gap-2 py-4 border-t border-border">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  Published on {new Date(post.publishedDate).toLocaleDateString('en-US', {
+                  Published on {new Date(post.scheduledAt).toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'long',
                     day: 'numeric',
@@ -303,7 +345,7 @@ export default function ViewPostPage() {
                   <p className="text-sm text-muted-foreground">
                     {post.status === "draft" 
                       ? "This post has not been published yet. Metrics will be available once it goes live."
-                      : `This post is scheduled to be published. Metrics will be available after ${new Date(post.scheduledDate!).toLocaleDateString()}.`
+                      : `This post is scheduled to be published. Metrics will be available after ${new Date(post.scheduledAt!).toLocaleDateString()}.`
                     }
                   </p>
                 </div>

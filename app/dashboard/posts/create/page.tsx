@@ -37,15 +37,14 @@ const formatNumber = (n: number) => {
 };
 
 export default function CreatePostPage() {
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<Partial<Post>>({
     images: [],
     caption: '',
     platform: 'instagram',
-    postType: 'post',
-    strategy: '',
-    scheduledDate: '',
-    autoPost: true,
-    shareToPlatforms: [],
+    postType: 'carousel',
+    scheduledAt: '',
+    hashtags: [],
+    status: 'draft',
   });
 
   const [selectedPost, setSelectedPost] = useState<TrendingPost | null>(null);
