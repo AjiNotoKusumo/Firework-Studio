@@ -29,7 +29,10 @@ const redzoneIdeasData = [
           camera: 'Close-up',
           motion: 'Static',
           emotion: 'Urgency',
-          soundEffect: { name: 'Whoosh' },
+          soundEffect: {
+            name: 'Whoosh',
+            url: 'https://www.myinstants.com/en/instant/ih-takotnyee-50339/?utm_source=copy&utm_medium=share',
+          },
         },
         {
           id: 2,
@@ -40,7 +43,10 @@ const redzoneIdeasData = [
           camera: 'Fast cuts',
           motion: 'Dynamic',
           emotion: 'Informative',
-          soundEffect: { name: 'Pop' },
+          soundEffect: {
+            name: 'Pop',
+            url: 'https://www.myinstants.com/en/instant/pop-12345/?utm_source=copy&utm_medium=share',
+          },
         },
         {
           id: 3,
@@ -51,7 +57,10 @@ const redzoneIdeasData = [
           camera: 'Medium shot',
           motion: 'Smooth',
           emotion: 'Relief',
-          soundEffect: { name: 'Chime' },
+          soundEffect: {
+            name: 'Chime',
+            url: 'https://soundcloud.com/user-937207437/sets/fahhh?utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing',
+          },
         },
       ],
     },

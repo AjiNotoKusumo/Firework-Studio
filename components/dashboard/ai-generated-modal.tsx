@@ -233,7 +233,7 @@ export default function StoryboardPreviewModal({
                 whiteSpace: 'nowrap',
                 fontWeight: 500,
               }}>
-              {data.structure.type} · {totalDuration}s
+              {data.structure} · {totalDuration}s
             </span>
 
             <span key="dot-2" style={{ color: 'rgba(34,197,94,0.4)', fontSize: 10, lineHeight: 1 }}>

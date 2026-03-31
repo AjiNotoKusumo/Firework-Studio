@@ -7,8 +7,9 @@ import { PostPreview } from '@/components/dashboard/post-preview';
 import { TrendingPostModal } from '@/components/dashboard/trending-post-modal';
 import AiSuggestModal from '@/components/dashboard/ai-suggest-modal';
 import { type Post } from '@/lib/posts-data';
-import { TrendingUp, Flame } from 'lucide-react';
+import { TrendingUp, Flame, Sparkles } from 'lucide-react';
 import { TrendingPost } from '@/types';
+import StoryboardPreviewModal from '@/components/dashboard/ai-generated-modal';
 
 const statusConfig = {
   trending: { label: 'Trending', className: 'bg-[#FFD54F] text-[#2E2E2E]' },
@@ -21,6 +22,62 @@ const formatNumber = (n: number) => {
   if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
   return n.toString();
 };
+
+// ---------------- MOCK DATA ----------------
+const redzoneIdeasData = [
+  {
+    id: 'idea-1',
+    imageUrl: 'https://images.unsplash.com/photo-1492724441997-5dc865305da7?w=400&h=400&fit=crop',
+    storyboard: {
+      concept: {
+        title: 'Stop Ruining Your Morning Hydration',
+        hook: "You're drinking water wrong every morning",
+      },
+      globalStyle: {
+        visualStyle: 'High-energy, bold captions',
+        colorPalette: 'Warm tones, high contrast',
+      },
+      structure: { type: 'video' as const },
+      scenes: [
+        {
+          id: 1,
+          purpose: 'hook',
+          description: 'Close-up intense stare holding water',
+          startTime: 0,
+          endTime: 3,
+          camera: 'Close-up',
+          motion: 'Static',
+          emotion: 'Urgency',
+          soundEffect: { name: 'Whoosh' },
+        },
+        {
+          id: 2,
+          purpose: 'build',
+          description: 'Quick cuts showing wrong habits',
+          startTime: 3,
+          endTime: 7,
+          camera: 'Fast cuts',
+          motion: 'Dynamic',
+          emotion: 'Informative',
+          soundEffect: { name: 'Pop' },
+        },
+        {
+          id: 3,
+          purpose: 'payoff',
+          description: 'Show correct method clearly',
+          startTime: 7,
+          endTime: 12,
+          camera: 'Medium shot',
+          motion: 'Smooth',
+          emotion: 'Relief',
+          soundEffect: { name: 'Chime' },
+        },
+      ],
+    },
+  },
+];
+
+type RedzoneIdea = (typeof redzoneIdeasData)[number];
 
 export default function CreatePostPage() {
   const [formData, setFormData] = useState<Partial<Post>>({
@@ -36,6 +93,8 @@ export default function CreatePostPage() {
   const [selectedPost, setSelectedPost] = useState<TrendingPost | null>(null);
   const [isTrendingModalOpen, setIsTrendingModalOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [ideas] = useState<RedzoneIdea[]>(redzoneIdeasData);
+  const [selectedIdea, setSelectedIdea] = useState<RedzoneIdea | null>(null);
 
   const trendingPosts: TrendingPost[] = [
     {
@@ -149,6 +208,39 @@ export default function CreatePostPage() {
               </button>
             );
           })}
+
+          {ideas.map((idea) => (
+            <button
+              key={idea.id}
+              onClick={() => setSelectedIdea(idea)}
+              className="group flex-shrink-0 w-[160px] text-left rounded-[20px] bg-white border border-pink-100 overflow-hidden transition-all hover:scale-[1.02] hover:shadow-xl">
+              {/* Image */}
+              <div className="relative w-full aspect-square overflow-hidden">
+                <img
+                  src={idea.imageUrl}
+                  alt="idea"
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+
+                <div className="absolute inset-0 bg-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+
+              {/* Content */}
+              <div className="p-2.5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-pink-500" />
+                  <span className="text-xs font-medium text-pink-500">AI Idea</span>
+                </div>
+
+                <h3 className="text-sm font-semibold text-foreground line-clamp-2">{idea.storyboard.concept.hook}</h3>
+
+                <p className="text-xs text-muted-foreground mt-2">
+                  {idea.storyboard.scenes.length} scenes • {idea.storyboard.structure.type}
+                </p>
+              </div>
+            </button>
+          ))}
+
           {/* 🤖 AI BUTTON */}
           <button
             className="group relative flex-shrink-0 w-[160px] rounded-[14px] border border-border bg-card overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
@@ -214,6 +306,13 @@ export default function CreatePostPage() {
         onSubmit={(data: any) => {
           console.log('AI INPUT:', data);
         }}
+      />
+
+      {/* Storyboard Preview Modal */}
+      <StoryboardPreviewModal
+        open={!!selectedIdea}
+        onOpenChange={(open) => !open && setSelectedIdea(null)}
+        storyboardData={selectedIdea?.storyboard ?? null}
       />
     </div>
   );
