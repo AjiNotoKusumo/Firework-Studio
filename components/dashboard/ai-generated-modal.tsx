@@ -413,8 +413,10 @@ export default function StoryboardPreviewModal({
               };
               const isActive = i === activeScene;
               return (
-                <button
+                <div
                   key={s.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setActiveScene(i)}
                   style={{
                     flex: 1,
@@ -547,7 +549,7 @@ export default function StoryboardPreviewModal({
                     }}>
                     {cfg.label}
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
