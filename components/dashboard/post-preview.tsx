@@ -108,9 +108,11 @@ function InstagramCarousel({ media }: { media: MediaItem[] }) {
       {/* sliding track */}
       <div
         className="flex h-full transition-transform duration-300 ease-in-out"
-        style={{ transform: `translateX(-${current * 100}%)`, width: `${total * 100}%` }}>
+        style={{
+          transform: `translateX(-${current * 100}%)`,
+        }}>
         {media.map((item, i) => (
-          <div key={i} className="relative h-full flex-shrink-0" style={{ width: `${100 / total}%` }}>
+          <div key={i} className="relative h-full w-full flex-shrink-0">
             <MediaSlide item={item} active={i === current} />
           </div>
         ))}
