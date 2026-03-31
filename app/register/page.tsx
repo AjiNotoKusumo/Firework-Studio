@@ -1,5 +1,6 @@
 'use client';
 
+import { signUp } from '@/lib/auth-client';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
@@ -29,6 +30,27 @@ export default function RegisterPage() {
     });
   };
 
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+
+    const res = await signUp.email({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      interests: [],
+      onboardingComplete: false,
+    });
+
+    if (res.error) {
+      setError(res.error.message || 'Something went wrong');
+      return;
+    }
+
+    window.location.href = '/login';
+  }
   return (
     <div className="relative min-h-screen bg-background overflow-hidden flex items-center justify-center px-6">
       {/* 🌌 Background gradient */}
@@ -99,7 +121,7 @@ export default function RegisterPage() {
           <h1 className="text-2xl font-bold text-foreground text-center">Create your account</h1>
           <p className="text-sm text-muted-foreground text-center mt-2">Start growing your social presence</p>
 
-          <form className="mt-6 space-y-4">
+          <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
             <input
               name="name"
               placeholder="Name"

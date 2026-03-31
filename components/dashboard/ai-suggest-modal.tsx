@@ -11,6 +11,13 @@ type ReferencePost = {
   style: string;
 };
 
+type SavedPost = {
+  id: string;
+  caption: string;
+  imageUrl: string;
+  platform: 'instagram' | 'twitter';
+};
+
 type GeneratePostInput = {
   type: 'video' | 'carousel';
   duration: number | null;
@@ -47,18 +54,18 @@ type StoryboardData = {
   }[];
 };
 
-const DEFAULT_REFERENCES: ReferencePost[] = [
+const MOCK_SAVED_POSTS: SavedPost[] = [
   {
-    summary: 'fast-paced transformation showing bad vs good habits',
-    hook: 'you’re doing this wrong',
-    tone: 'energetic, slightly aggressive',
-    style: 'bold text + quick cuts',
+    id: '1',
+    caption: 'you’re doing this wrong...',
+    imageUrl: 'https://images.unsplash.com/photo-1492724441997-5dc865305da7',
+    platform: 'instagram',
   },
   {
-    summary: 'clean minimal carousel with tips',
-    hook: '5 things to fix your morning routine',
-    tone: 'calm, informative',
-    style: 'soft colors, centered text',
+    id: '2',
+    caption: '5 mistakes killing your progress',
+    imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee',
+    platform: 'instagram',
   },
 ];
 
@@ -81,13 +88,42 @@ export default function GeneratePostModal({
     tone: '',
     topic: '',
     platform: 'instagram',
-    referencePosts: DEFAULT_REFERENCES,
+    referencePosts: [],
   });
 
   const [interestInput, setInterestInput] = useState('');
   const [customDuration, setCustomDuration] = useState<number>(15);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiData, setAiData] = useState<GeneratePostInput | null>(null);
+  const [selectedPosts, setSelectedPosts] = useState<SavedPost[]>([]);
+  const [storyboardData, setStoryboardData] = useState<StoryboardData | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const togglePost = (post: SavedPost) => {
+    setSelectedPosts((prev) => {
+      if (prev.find((p) => p.id === post.id)) {
+        return prev.filter((p) => p.id !== post.id);
+      }
+
+      if (prev.length >= 5) return prev;
+
+      return [...prev, post];
+    });
+  };
+
+  const extractHook = (caption: string): string => {
+    return caption
+      .split(/[.!?\n]/)[0] // first sentence
+      .replace(/[#@].*/g, '') // remove hashtags/mentions
+      .trim();
+  };
+
+  const mapToReference = (post: SavedPost): ReferencePost => ({
+    summary: post.caption,
+    hook: extractHook(post.caption),
+    tone: 'inspiration only', // don't override user tone
+    style: 'viral social media post',
+  });
 
   // ===== handlers =====
   const addInterest = () => {
@@ -291,18 +327,87 @@ export default function GeneratePostModal({
             </div>
           </div>
 
+          {/* SAVED POSTS */}
+          <div>
+            <label className="text-sm font-medium">Saved Posts ({selectedPosts.length})</label>
+
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              {MOCK_SAVED_POSTS.map((post) => {
+                const selected = selectedPosts.some((p) => p.id === post.id);
+
+                return (
+                  <div
+                    key={post.id}
+                    onClick={() => togglePost(post)}
+                    className={`cursor-pointer border rounded-xl overflow-hidden
+            ${selected ? 'border-primary ring-2 ring-primary/40' : 'border-border'}`}>
+                    <img src={post.imageUrl} className="w-full h-24 object-cover" />
+                    <div className="p-2 text-xs">
+                      <p>{post.caption}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* SUBMIT */}
           <button
-            onClick={() => {
-              setAiData(form); // pass form into modal
-              setAiOpen(true); // open modal
+            onClick={async () => {
+              const mapped = selectedPosts.map(mapToReference);
+
+              const finalForm: GeneratePostInput = {
+                ...form,
+                referencePosts: mapped.length ? mapped : [],
+              };
+
+              setAiData(finalForm);
+              setLoading(true);
+
+              try {
+                const res = await fetch('/api/ai/concepts', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(finalForm),
+                });
+
+                if (!res.ok) throw new Error('Failed to generate');
+
+                const data: StoryboardData = await res.json();
+
+                setStoryboardData(data);
+                setAiOpen(true);
+
+                // ✅ CLEAR FIELDS AFTER GENERATE
+                setForm({
+                  type: 'video',
+                  duration: 15,
+                  slides: null,
+                  interest: [],
+                  tone: '',
+                  topic: '',
+                  platform: 'instagram',
+                  referencePosts: [],
+                });
+                setInterestInput('');
+                setCustomDuration(15);
+                setSelectedPosts([]);
+              } catch (err) {
+                console.error(err);
+                alert('AI failed to generate. Try again.');
+              } finally {
+                setLoading(false);
+              }
             }}
+            disabled={loading}
             className="w-full mt-2 py-2 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition">
-            Generate 🔥
+            {loading ? 'Generating...' : 'Generate 🔥'}
           </button>
         </div>
       </DialogContent>
-      <AIGeneratedModal open={aiOpen} onOpenChange={setAiOpen} />
+      <AIGeneratedModal open={aiOpen} onOpenChange={setAiOpen} storyboardData={storyboardData} />
     </Dialog>
   );
 }

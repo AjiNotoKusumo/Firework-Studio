@@ -48,7 +48,7 @@ export default function CreatePostPage() {
       status: 'trending',
       platform: 'instagram',
       author: { name: 'Creator A' },
-      url: 'https://example.com/post/1'
+      url: 'https://example.com/post/1',
     },
     {
       id: '2',
@@ -61,7 +61,7 @@ export default function CreatePostPage() {
       status: 'growing',
       platform: 'instagram',
       author: { name: 'Creator B' },
-      url: 'https://example.com/post/2'
+      url: 'https://example.com/post/2',
     },
     {
       id: '3',
@@ -73,7 +73,7 @@ export default function CreatePostPage() {
       status: 'stable',
       platform: 'twitter',
       author: { name: 'Creator C' },
-      url: 'https://example.com/post/3'
+      url: 'https://example.com/post/3',
     },
   ];
 
@@ -211,7 +211,7 @@ export default function CreatePostPage() {
       <AiSuggestModal
         open={isAiModalOpen}
         onOpenChange={setIsAiModalOpen}
-        onSubmit={(data : any) => {
+        onSubmit={(data: any) => {
           console.log('AI INPUT:', data);
         }}
       />
