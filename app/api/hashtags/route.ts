@@ -1,6 +1,8 @@
 // app/api/hashtags/route.ts
 export const runtime = 'nodejs';
 
+import { getInstagramHashtag } from '@/lib/apify';
+import { auth } from '@/lib/auth';
 import { ApifyClient } from 'apify-client';
 
 const apify = new ApifyClient();
@@ -17,30 +19,23 @@ function parseCount(info: string): number {
 }
 
 // ---------------- Default seeds ----------------
-const DEFAULT_SEEDS = ['ai', 'technology', 'innovation', 'startup', 'science'];
+
 
 // ---------------- API ROUTE ----------------
 export async function POST(req: Request) {
   try {
-    const { interests }: { interests?: string[] } = await req.json();
+    const session = await auth.api.getSession({
+      headers: req.headers // This is now automatically populated with the cookies
+    });
+
+    if (!session || !session.user) {
+      throw { message: 'Unauthorized', status: 401 };
+    }
+
+    const interests = session.user.interests || [];
 
     // Use interests as seeds if provided, otherwise fall back to defaults
-    const seedHashtags = interests && interests.length > 0 ? interests : DEFAULT_SEEDS;
-
-    // ✅ One call per seed, in parallel, using instagram-search-scraper
-    const runs = await Promise.all(
-      seedHashtags.map((tag) =>
-        apify.actor('apify/instagram-search-scraper').call({
-          enhanceUserSearchWithFacebookPage: false,
-          search: tag,
-          searchType: 'hashtag',
-          searchLimit: 1,
-        }),
-      ),
-    );
-
-    // Fetch all datasets in parallel
-    const datasets = await Promise.all(runs.map((run) => apify.dataset(run.defaultDatasetId).listItems()));
+    const datasets = await getInstagramHashtag(interests)
 
     // Extract relatedFrequent hashtags with real post counts
     const seen = new Set<string>();

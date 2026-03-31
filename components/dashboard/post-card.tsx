@@ -3,23 +3,11 @@
 import { Heart, MessageCircle, Share2, Bookmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { TrendingPost } from '@/types';
 
-interface PostCardProps {
-  id: string;
-  imageUrl: string;
-  caption: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  status: 'trending' | 'growing' | 'stable';
-  platform: 'instagram' | 'twitter';
-  author: {
-    name: string;
-    avatar: string;
-  };
-}
 
-export function PostCard({ imageUrl, caption, likes, comments, shares, status, platform, author }: PostCardProps) {
+
+export function PostCard({ imageUrl, caption, likes, comments, shares, status, platform, author }: TrendingPost) {
   return (
     <div className="group rounded-[20px] bg-card p-4 shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
       {/* Image */}

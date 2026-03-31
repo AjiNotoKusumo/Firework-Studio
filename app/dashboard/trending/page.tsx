@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { PostCard } from '@/components/dashboard/post-card';
 import { ChartCard } from '@/components/dashboard/chart-card';
 import { TrendingPostModal } from '@/components/dashboard/trending-post-modal';
+import { TrendingPost } from '@/types';
 
 // ---------------- TYPES ----------------
 type Hashtag = { name: string; value: number };
@@ -17,17 +18,6 @@ type ApiPost = {
   timestamp: string;
   shortCode: string;
   displayUrl?: string;
-};
-type TrendingPost = {
-  id: string;
-  imageUrl: string;
-  caption: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  status: 'trending' | 'growing' | 'stable';
-  platform: 'instagram';
-  author: { name: string; avatar: string };
 };
 
 // ---------------- HELPERS ----------------
@@ -61,7 +51,6 @@ export default function TrendingPage() {
           }),
           fetch('/api/trending', {
             method: 'POST',
-            body: JSON.stringify({ interests }),
             headers: { 'Content-Type': 'application/json' },
           }),
         ]);
@@ -76,7 +65,7 @@ export default function TrendingPage() {
             name: tag.name,
             value: tag.value,
           }))
-          .sort((a, b) => b.value - a.value)
+          .sort((a: any, b: any) => b.value - a.value)
           .slice(0, 10);
 
         // ---------------- POSTS ----------------
