@@ -37,61 +37,76 @@ export default function TrendingPage() {
   const [savedPosts, setSavedPosts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        const interests: string[] = []; // user interests can be added later
+  async function fetchDataInstagram() {
+    try {
+      setLoading(true);
+      const interests: string[] = []; // user interests can be added later
 
-        const [hashtagsRes, postsRes] = await Promise.all([
-          fetch('/api/hashtags', {
-            method: 'POST',
-            body: JSON.stringify({ interests }),
-            headers: { 'Content-Type': 'application/json' },
-          }),
-          fetch('/api/trending', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-          }),
-        ]);
+      const [hashtagsRes, postsRes] = await Promise.all([
+        fetch('/api/hashtags', {
+          method: 'POST',
+          body: JSON.stringify({ interests }),
+          headers: { 'Content-Type': 'application/json' },
+        }),
+        fetch('/api/trending', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ]);
 
-        const hashtagsData = await hashtagsRes.json().catch(() => ({ hashtags: [] }));
-        const postsDataRaw = await postsRes.json();
-        const postsData: ApiPost[] = Array.isArray(postsDataRaw) ? postsDataRaw : [];
+      const hashtagsData = await hashtagsRes.json().catch(() => ({ hashtags: [] }));
+      const postsDataRaw = await postsRes.json();
+      const postsData: ApiPost[] = Array.isArray(postsDataRaw) ? postsDataRaw : [];
 
-        // ---------------- HASHTAGS ----------------
-        const formattedHashtags: Hashtag[] = (hashtagsData.hashtags || [])
-          .map((tag: any) => ({
-            name: tag.name,
-            value: tag.value,
-          }))
-          .sort((a: any, b: any) => b.value - a.value)
-          .slice(0, 10);
+      // ---------------- HASHTAGS ----------------
+      const formattedHashtags: Hashtag[] = (hashtagsData.hashtags || [])
+        .map((tag: any) => ({
+          name: tag.name,
+          value: tag.value,
+        }))
+        .sort((a: any, b: any) => b.value - a.value)
+        .slice(0, 10);
 
-        // ---------------- POSTS ----------------
-        const formattedPosts: TrendingPost[] = (postsData || []).map((post: ApiPost, i: number) => ({
-          id: post.shortCode || `post-${i}`,
-          imageUrl: post.displayUrl || buildImageUrl(post.shortCode),
-          caption: post.caption || '',
-          likes: post.likesCount || 0,
-          comments: post.commentsCount || 0,
-          shares: Math.floor((post.likesCount || 0) * 0.1),
-          status: getStatus(post.likesCount || 0, post.commentsCount || 0),
-          platform: 'instagram',
-          author: { name: post.ownerUsername || 'unknown', avatar: '' },
-          url: post.url || '',
-        }));
+      // ---------------- POSTS ----------------
+      const formattedPosts: TrendingPost[] = (postsData || []).map((post: ApiPost, i: number) => ({
+        id: post.shortCode || `post-${i}`,
+        imageUrl: post.displayUrl || buildImageUrl(post.shortCode),
+        caption: post.caption || '',
+        likes: post.likesCount || 0,
+        comments: post.commentsCount || 0,
+        shares: Math.floor((post.likesCount || 0) * 0.1),
+        status: getStatus(post.likesCount || 0, post.commentsCount || 0),
+        platform: 'instagram',
+        author: { name: post.ownerUsername || 'unknown', avatar: '' },
+        url: post.url || '',
+      }));
 
-        setHashtags(formattedHashtags);
-        setPosts(formattedPosts);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-      } finally {
-        setLoading(false);
-      }
+      setHashtags(formattedHashtags);
+      setPosts(formattedPosts);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    fetchData();
+  async function fetchDataTwitter() {
+    try{
+      const response = await fetch("/api/trending/twitter")
+
+      const data = await response.json()
+
+      console.log("Twitter trending data:", data)
+      
+    } catch (error) {
+      console.error("Error fetching Twitter data:", error)
+    }
+  }
+
+
+  useEffect(() => {
+    fetchDataTwitter();
+    fetchDataInstagram();
   }, []);
 
   const handleSavePost = (postId: string) => {
@@ -101,8 +116,10 @@ export default function TrendingPage() {
   return (
     <div className="p-8">
       {/* HASHTAGS */}
-      <section className="mb-8">
+      <section className="mb-8 flex flex-col gap-6">
         <ChartCard title="Top Hashtags" subtitle="Live Instagram hashtag popularity" data={hashtags} type="bar" />
+
+        <ChartCard title="Top Hashtags" subtitle="Live Twitter hashtag popularity" data={hashtags} type="bar" />
       </section>
 
       {/* POSTS */}

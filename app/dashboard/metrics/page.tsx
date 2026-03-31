@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Users, Heart, ImageIcon, Eye, TrendingUp } from "lucide-react"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { ChartCard } from "@/components/dashboard/chart-card"
@@ -65,7 +65,32 @@ const metricsData = {
 
 export default function MetricsPage() {
   const [activeTab, setActiveTab] = useState<"Instagram" | "Twitter">("Instagram")
+  const [twitterMetrics, setTwitterMetrics] = useState<any>({})
   const data = metricsData[activeTab]
+
+  const fetchMetricsTwitter = async () => {
+    try{
+      const response = await fetch("/api/metrics/twitter")
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch Twitter metrics")
+      }
+
+      const twitterData = await response.json()
+
+      console.log("Twitter Metrics Data:", twitterData.postData)
+
+      setTwitterMetrics(twitterData)
+    } catch(error) {
+      console.log("Error fetching Twitter metrics:", error)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === "Twitter") {
+      fetchMetricsTwitter()
+    }
+  }, [activeTab])
 
   return (
     <div className="p-8">
@@ -91,7 +116,7 @@ export default function MetricsPage() {
       <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Followers"
-          value={data.followers}
+          value={activeTab === "Twitter" ? twitterMetrics.followers : data.followers}
           change={data.followersChange}
           changeType="positive"
           icon={Users}
@@ -99,7 +124,7 @@ export default function MetricsPage() {
         />
         <StatCard
           title="Total Likes"
-          value={data.likes}
+          value={activeTab === "Twitter" ? twitterMetrics.like : data.likes}
           change={data.likesChange}
           changeType="positive"
           icon={Heart}
@@ -107,7 +132,7 @@ export default function MetricsPage() {
         />
         <StatCard
           title="Posts"
-          value={data.posts}
+          value={activeTab === "Twitter" ? twitterMetrics.posts : data.posts}
           change={data.postsChange}
           changeType="positive"
           icon={ImageIcon}
@@ -115,7 +140,7 @@ export default function MetricsPage() {
         />
         <StatCard
           title="Total Views"
-          value={data.views}
+          value={activeTab === "Twitter" ? twitterMetrics.views : data.views}
           change={data.viewsChange}
           changeType="positive"
           icon={Eye}
