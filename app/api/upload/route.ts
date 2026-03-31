@@ -2,9 +2,9 @@ import { v2 as cloudinary } from 'cloudinary';
 import { NextRequest } from 'next/server';
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
+  api_key: process.env.CLOUDINARY_API_KEY!,
+  api_secret: process.env.CLOUDINARY_API_SECRET!,
 });
 
 export async function POST(req: NextRequest) {
@@ -22,7 +22,6 @@ export async function POST(req: NextRequest) {
 
     const result = await cloudinary.uploader.upload(dataUri, {
       resource_type: 'auto',
-      upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
       folder: 'posts',
     });
 
