@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, TrendingUp, Bookmark, Calendar, PenSquare, Leaf, Plus } from 'lucide-react';
+import { BarChart3, TrendingUp, Bookmark, Calendar, PenSquare, Leaf, Plus, Flame } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -10,6 +10,7 @@ const navItems = [
   { icon: Plus, label: 'Create', href: '/dashboard/posts/create', highlight: true },
   { icon: BarChart3, label: 'Metrics', href: '/dashboard/metrics' },
   { icon: TrendingUp, label: 'Trending', href: '/dashboard/trending' },
+  { icon: Flame, label: 'Redzone', href: '/dashboard/redzone' }, // 👈 added here
   { icon: Bookmark, label: 'Saved', href: '/dashboard/saved' },
   { icon: PenSquare, label: 'Planning', href: '/dashboard/planning' },
   { icon: Calendar, label: 'Calendar', href: '/dashboard/calendar' },
