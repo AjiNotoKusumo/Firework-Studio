@@ -1,16 +1,16 @@
-import { ConceptPromptType } from "@/types";
-import { GoogleGenAI } from "@google/genai";
-import PostModel from "./models/PostModel";
+import { ConceptPromptType } from '@/types';
+import { GoogleGenAI } from '@google/genai';
+import PostModel from './models/PostModel';
 import pLimit from 'p-limit';
 
 const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY
+  apiKey: process.env.GEMINI_API_KEY,
 });
 
 export async function genereateConcepts(conceptPrompt: ConceptPromptType) {
-        const response = await ai.models.generateContent({
-            model: "gemini-3.1-flash-lite-preview",
-            contents: `
+  const response = await ai.models.generateContent({
+    model: 'gemini-3.1-flash-lite-preview',
+    contents: `
                 You are an expert short-form content strategist and storyboard creator.
 
                 Your task is to generate a structured storyboard plan for social media content based on the given user input.
@@ -149,44 +149,43 @@ export async function genereateConcepts(conceptPrompt: ConceptPromptType) {
                 Down here is the user input JSON you will use to generate the storyboard. Use it to create a unique and engaging content plan that would perform well on the specified platform and interest area.
 
                 userInput: ${JSON.stringify(conceptPrompt)}
-            `
-        })
+            `,
+  });
 
-        const clearResponse : string = response?.text?.replace(/```json/g, '').replace(/```/g, '') || '';
+  const clearResponse: string = response?.text?.replace(/```json/g, '').replace(/```/g, '') || '';
 
-        const parseResponse = JSON.parse(clearResponse);
+  const parseResponse = JSON.parse(clearResponse);
 
-        if(parseResponse.structure.type === "video") {
-            for(const scene of parseResponse.scenes) {
-                const sounds : any[] = await PostModel.findBestSounds(scene);
-                const bestSound = await pickSoundEffect(scene, sounds);
+  if (parseResponse.structure.type === 'video') {
+    for (const scene of parseResponse.scenes) {
+      const sounds: any[] = await PostModel.findBestSounds(scene);
+      const bestSound = await pickSoundEffect(scene, sounds);
 
-                scene.soundEffect = bestSound;
-            }
-        }
+      scene.soundEffect = bestSound;
+    }
+  }
 
-        return parseResponse;
-
+  return parseResponse;
 }
 
 export async function embed(text: string) {
-    const result = await ai.models.embedContent({
-        model: "gemini-embedding-2-preview",
-        contents: text,
-        config: {
-            outputDimensionality: 768
-        }
-    });
+  const result = await ai.models.embedContent({
+    model: 'gemini-embedding-2-preview',
+    contents: text,
+    config: {
+      outputDimensionality: 768,
+    },
+  });
 
-    if(!result.embeddings || result.embeddings.length === 0) {
-        throw new Error("Embedding generation failed");
-    }
+  if (!result.embeddings || result.embeddings.length === 0) {
+    throw new Error('Embedding generation failed');
+  }
 
-    return result.embeddings[0].values
+  return result.embeddings[0].values;
 }
 
 export async function pickSoundEffect(scene: any, soundOptions: any[]) {
-    const prompt = `
+  const prompt = `
         You are selecting the BEST sound effect for a scene.
 
         Scene:
@@ -195,62 +194,66 @@ export async function pickSoundEffect(scene: any, soundOptions: any[]) {
         - Purpose: ${scene.purpose}
 
         Sound Options:
-        ${soundOptions.map((s, i) => `
+        ${soundOptions
+          .map(
+            (s, i) => `
         ${i + 1}. ${s.name}
         Description: ${s.description}
         Category: ${s.category}
-        `).join("\n")}
+        `,
+          )
+          .join('\n')}
 
         Return ONLY the number of the best sound.
     `;
 
-    const result = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite-preview",
-        contents: prompt,
-    });
+  const result = await ai.models.generateContent({
+    model: 'gemini-3.1-flash-lite-preview',
+    contents: prompt,
+  });
 
-    if (!result.text) {
-        throw new Error("Failed to generate sound effect choice");
-    }
+  if (!result.text) {
+    throw new Error('Failed to generate sound effect choice');
+  }
 
-    const text = result.text.trim();
-    const index = parseInt(text) - 1;
+  const text = result.text.trim();
+  const index = parseInt(text) - 1;
 
-    return soundOptions[index];
+  return soundOptions[index];
 }
 
 export async function generateImage(prompt: string) {
-    const result = await ai.models.generateContent({
-        model: "gemini-3.1-flash-image-preview",
-        contents: [{
-            role: 'user',
-            parts: [{ text: prompt }] // Your structured prompt from before
-        }],
-        config: {
-            responseModalities: ["IMAGE"],
-            imageConfig: {
-                aspectRatio: "4:3"
-            }
-        }
-    });
+  const result = await ai.models.generateContent({
+    model: 'gemini-3.1-flash-image-preview',
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: prompt }], // Your structured prompt from before
+      },
+    ],
+    config: {
+      responseModalities: ['IMAGE'],
+      imageConfig: {
+        aspectRatio: '4:3',
+      },
+    },
+  });
 
-    if (!result.candidates?.[0]?.content?.parts) {
-        throw new Error("Image generation failed");
-    }
+  if (!result.candidates?.[0]?.content?.parts) {
+    throw new Error('Image generation failed');
+  }
 
-    const base64 = result.candidates[0].content.parts.find(
-        part => part.inlineData
-    )?.inlineData?.data;
+  const base64 = result.candidates[0].content.parts.find((part) => part.inlineData)?.inlineData?.data;
 
-    if (!base64) {
-        throw new Error("No image data found in response");
-    }
+  if (!base64) {
+    throw new Error('No image data found in response');
+  }
 
-    return base64;
+  return base64;
 }
 
-function videoPrompt(scene : any, globalStyle: any, concept: any) {
-    return `
+function videoPrompt(scene: any, globalStyle: any, concept: any) {
+  return `
         A storyboard-style sketch representing a cinematic moment from a short-form video.
 
         This is frame ${scene.sceneNumber} in a continuous sequence.
@@ -306,8 +309,8 @@ function videoPrompt(scene : any, globalStyle: any, concept: any) {
     `;
 }
 
-function carouselPrompt(scene : any, globalStyle: any, concept: any) {
-    return `
+function carouselPrompt(scene: any, globalStyle: any, concept: any) {
+  return `
         A storyboard-style sketch illustrating ${scene.description}, 
         capturing a clear moment in a visual sequence.
 
@@ -352,52 +355,50 @@ function carouselPrompt(scene : any, globalStyle: any, concept: any) {
         - No overly complex background
         - Keep it clean, simple, and visually readable
     `;
-
 }
 
 export async function generateSingleImage(scene: any, globalStyle: any, structure: string, concept: any) {
-    let prompt = "";
+  let prompt = '';
 
-    if(structure === "video") {
-        prompt = videoPrompt(scene, globalStyle, concept);
-    } else {
-        prompt = carouselPrompt(scene, globalStyle, concept);
-    }
+  if (structure === 'video') {
+    prompt = videoPrompt(scene, globalStyle, concept);
+  } else {
+    prompt = carouselPrompt(scene, globalStyle, concept);
+  }
 
-    const image = await generateImage(prompt);
+  const image = await generateImage(prompt);
 
-    return {
-        ...scene,
-        image,
-    };
+  return {
+    ...scene,
+    image,
+  };
 }
 
 export async function generateAllImages(script: any) {
-    const limit = pLimit(3);
-    const { scenes, globalStyle, structure, concept } = script;
+  const limit = pLimit(3);
+  const { scenes, globalStyle, structure, concept } = script;
 
+  const results = await Promise.all(
+    scenes.map((scene: any) => limit(() => generateSingleImage(scene, globalStyle, structure, concept))),
+  );
 
-    const results = await Promise.all(
-        scenes.map((scene : any) => limit(() => generateSingleImage(scene, globalStyle, structure, concept)))
-    )
-
-    return results;
+  return results;
 }
 
 export async function getTopicUrls(interests: string[] = []): Promise<string[]> {
   try {
     if (!interests.length) {
-    return [
-      'https://www.instagram.com/explore/topics/10155868806390727/sports/',
-      'https://www.instagram.com/explore/topics/10155994924430727/music-audio/',
-      'https://www.instagram.com/explore/topics/10156104410190727/fashion-beauty/',
-      'https://www.instagram.com/explore/topics/10155994923880727/tv-movies/',
-      'https://www.instagram.com/explore/topics/10156104417160727/games/',
-      'https://www.instagram.com/explore/topics/514454113372737/pop-culture/',
-    ];
-  }
+      return [
+        'https://www.instagram.com/explore/topics/10155868806390727/sports/',
+        'https://www.instagram.com/explore/topics/10155994924430727/music-audio/',
+        'https://www.instagram.com/explore/topics/10156104410190727/fashion-beauty/',
+        'https://www.instagram.com/explore/topics/10155994923880727/tv-movies/',
+        'https://www.instagram.com/explore/topics/10156104417160727/games/',
+        'https://www.instagram.com/explore/topics/514454113372737/pop-culture/',
+      ];
+    }
 
-  const prompt = `
+    const prompt = `
     You are a precise classification engine that maps user interests to predefined Instagram topic URLs.
 
     Your goal is to select the MOST relevant topics based on semantic meaning.
@@ -543,8 +544,8 @@ export async function getTopicUrls(interests: string[] = []): Promise<string[]> 
     `;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3.1-flash-lite-preview',
-        contents: prompt,
+      model: 'gemini-3.1-flash-lite-preview',
+      contents: prompt,
     });
 
     const text = response.text?.trim() || '';

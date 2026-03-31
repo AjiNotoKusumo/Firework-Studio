@@ -2,19 +2,45 @@
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // ─── PURPOSE COLORS ──────────────────────────────────────────────────────────
 const PURPOSE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   hook: { label: 'Hook', color: '#F97316', bg: 'rgba(249,115,22,0.15)' },
   build: { label: 'Build', color: '#3B82F6', bg: 'rgba(59,130,246,0.15)' },
   payoff: { label: 'Payoff', color: '#10B981', bg: 'rgba(16,185,129,0.15)' },
-  cta: { label: 'CTA', color: '#A855F7', bg: 'rgba(168,85,247,0.15)' },
+  call_to_action: { label: 'CTA', color: '#A855F7', bg: 'rgba(168,85,247,0.15)' },
 };
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
+type StoryboardData = {
+  concept: {
+    title: string;
+    hook: string;
+  };
+  globalStyle: {
+    visualStyle: string;
+    colorPalette: string;
+  };
+  structure: {
+    type: 'video' | 'carousel';
+  };
+  scenes: {
+    id: number;
+    purpose: string;
+    description: string;
+    startTime: number;
+    endTime: number;
+    camera: string;
+    motion: string;
+    emotion: string;
+    soundEffect: { name: string };
+  }[];
+};
+
 type Scene = {
   id: number;
+  sceneNumber?: number;
   purpose: string;
   description: string;
   startTime: number;
@@ -22,113 +48,99 @@ type Scene = {
   camera: string;
   motion: string;
   emotion: string;
-  soundEffect: { name: string };
+  soundEffect: { name: string; url?: string };
 };
 
 // ─── MAIN MODAL ──────────────────────────────────────────────────────────────
 export default function StoryboardPreviewModal({
   open,
   onOpenChange,
+  storyboardData,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  storyboardData: StoryboardData | null;
 }) {
   const [activeScene, setActiveScene] = useState<number>(0);
+  const [scenes, setScenes] = useState<Scene[]>([]);
+  const [headerExpanded, setHeaderExpanded] = useState(false);
+  const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set());
+  const [sceneImages, setSceneImages] = useState<Record<number, string>>({});
+  const [loadingScenes, setLoadingScenes] = useState<Set<number>>(new Set());
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
 
-  const initialScenes: Scene[] = [
-    {
-      id: 1,
-      purpose: 'hook',
-      description: 'Person gulping sugary drink looking tired',
-      startTime: 0,
-      endTime: 3,
-      camera: 'Close-up',
-      motion: 'Fast zoom-in',
-      emotion: 'Urgency',
-      soundEffect: { name: 'AUUGHHH' },
-    },
-    {
-      id: 2,
-      purpose: 'build',
-      description: 'Pouring lemon water. MISTAKE #1 text overlay',
-      startTime: 3,
-      endTime: 6,
-      camera: 'Overhead',
-      motion: 'Fast cut',
-      emotion: 'Instructional',
-      soundEffect: { name: 'Core Sound' },
-    },
-    {
-      id: 3,
-      purpose: 'build',
-      description: 'Adding electrolytes. MISTAKE #2 text',
-      startTime: 6,
-      endTime: 9,
-      camera: 'Macro',
-      motion: 'Handheld',
-      emotion: 'Informative',
-      soundEffect: { name: 'Error sound' },
-    },
-    {
-      id: 4,
-      purpose: 'payoff',
-      description: 'Drinks water, looks refreshed and energised',
-      startTime: 9,
-      endTime: 12,
-      camera: 'Eye-level',
-      motion: 'Slow tilt',
-      emotion: 'Satisfied',
-      soundEffect: { name: 'Correct ding' },
-    },
-    {
-      id: 5,
-      purpose: 'cta',
-      description: 'READ CAPTION text on screen, talent smiling to camera',
-      startTime: 12,
-      endTime: 15,
-      camera: 'Medium shot',
-      motion: 'Static',
-      emotion: 'Empowering',
-      soundEffect: { name: 'Champions' },
-    },
-    {
-      id: 6,
-      purpose: 'cta',
-      description: 'READ CAPTION text on screen, talent smiling to camera',
-      startTime: 12,
-      endTime: 15,
-      camera: 'Medium shot',
-      motion: 'Static',
-      emotion: 'Empowering',
-      soundEffect: { name: 'Champions' },
-    },
-    {
-      id: 7,
-      purpose: 'cta',
-      description: 'READ CAPTION text on screen, talent smiling to camera',
-      startTime: 12,
-      endTime: 15,
-      camera: 'Medium shot',
-      motion: 'Static',
-      emotion: 'Empowering',
-      soundEffect: { name: 'Champions' },
-    },
-    {
-      id: 8,
-      purpose: 'build',
-      description: 'Adding electrolytes. MISTAKE #2 text',
-      startTime: 6,
-      endTime: 9,
-      camera: 'Macro',
-      motion: 'Handheld',
-      emotion: 'Informative',
-      soundEffect: { name: 'Error sound' },
-    },
-  ];
+  const toggleTag = (key: string) =>
+    setExpandedTags((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
 
-  const [scenes, setScenes] = useState<Scene[]>(initialScenes);
+  // ── IMAGE GENERATION ────────────────────────────────────────────────────────
+  const generateSingle = async (sceneIndex: number) => {
+    if (!storyboardData) return;
+    const s = data.scenes[sceneIndex];
+    setLoadingScenes((prev) => new Set(prev).add(sceneIndex));
+    try {
+      const payload = {
+        concept: storyboardData.concept,
+        globalStyle: storyboardData.globalStyle,
+        structure: storyboardData.structure.type,
+        scene: s,
+      };
+      const res = await fetch('/api/ai/images/generate-single', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      // response is { ...scene, image: string }
+      const result = (await res.json()) as { image: string };
+      if (result.image) {
+        setSceneImages((prev) => ({ ...prev, [sceneIndex]: result.image }));
+      }
+    } catch (err) {
+      console.error('generate-single failed', err);
+    } finally {
+      setLoadingScenes((prev) => {
+        const next = new Set(prev);
+        next.delete(sceneIndex);
+        return next;
+      });
+    }
+  };
 
-  // ── helper: update a field on the active scene ──────────────────────────
+  const generateAll = async () => {
+    if (!storyboardData) return;
+    setIsGeneratingAll(true);
+    setLoadingScenes(new Set(data.scenes.map((_, i) => i)));
+    try {
+      const res = await fetch('/api/ai/images/generate-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(storyboardData),
+      });
+      // response is a flat array: { ...scene, image: string }[]
+      const results = (await res.json()) as { sceneNumber: number; image: string }[];
+      const newImages: Record<number, string> = {};
+      results.forEach(({ sceneNumber, image }) => {
+        newImages[sceneNumber - 1] = image; // sceneNumber is 1-based → 0-based index
+      });
+      setSceneImages(newImages);
+    } catch (err) {
+      console.error('generate-all failed', err);
+    } finally {
+      setIsGeneratingAll(false);
+      setLoadingScenes(new Set());
+    }
+  };
+
+  useEffect(() => {
+    if (storyboardData?.scenes) {
+      setScenes(storyboardData.scenes);
+      setActiveScene(0);
+    }
+  }, [storyboardData]);
+
   const updateScene = (field: keyof Scene, value: string) => {
     setScenes((prev) =>
       prev.map((s, i) => {
@@ -139,16 +151,12 @@ export default function StoryboardPreviewModal({
     );
   };
 
+  if (!storyboardData || scenes.length === 0) return null;
+
   const data = {
-    concept: {
-      title: 'Stop Ruining Your Morning Hydration',
-      hook: 'Stop drinking water like this in the morning.',
-    },
-    globalStyle: {
-      visualStyle: 'Modern, clean, high-contrast fitness aesthetic',
-      colorPalette: 'Electric blue, white, dark charcoal',
-    },
-    structure: { type: 'video' },
+    concept: storyboardData?.concept,
+    globalStyle: storyboardData?.globalStyle,
+    structure: storyboardData?.structure.type,
     scenes,
   };
 
@@ -169,87 +177,172 @@ export default function StoryboardPreviewModal({
           maxWidth: '1200px',
           height: '88vh',
           maxHeight: '860px',
-          background: '#F0FDF4', // was #0F1117 — light green base
+          background: '#F0FDF4',
           borderRadius: '20px',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 32px 80px rgba(34,197,94,0.18)', // was rgba(0,0,0,0.6) — green-tinted shadow
+          boxShadow: '0 32px 80px rgba(34,197,94,0.18)',
         }}>
-        {/* ── HEADER ─────────────────────────────────────────────────────── */}
         <VisuallyHidden>
           <DialogTitle>Storyboard Preview</DialogTitle>
         </VisuallyHidden>
+
+        {/* ── HEADER ─────────────────────────────────────────────────────── */}
         <div
           style={{
-            padding: '20px 28px 16px',
-            borderBottom: '1px solid rgba(34,197,94,0.2)', // was rgba(255,255,255,0.07) — soft green border
+            padding: '16px 28px 14px',
+            borderBottom: '1px solid rgba(34,197,94,0.2)',
             flexShrink: 0,
           }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: '#4D8A63', // was #6B7280 — muted green
-                  }}>
-                  Storyboard Preview
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    padding: '2px 8px',
-                    borderRadius: 20,
-                    background: 'rgba(56,189,248,0.12)', // was rgba(255,255,255,0.06) — sky blue tint
-                    color: '#0369A1', // was #9CA3AF — sky blue text
-                    border: '1px solid rgba(56,189,248,0.3)', // was rgba(255,255,255,0.08)
-                  }}>
-                  {data.structure.type} · {totalDuration}s
-                </span>
-              </div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0C2A1A', lineHeight: 1.3, margin: 0 }}>
-                {/* was #F9FAFB — deep dark green for contrast on light bg */}
-                {data.concept.title}
-              </h2>
-              <p style={{ fontSize: 13, color: '#4D8A63', marginTop: 4 }}>{data.concept.hook}</p>
-              {/* was #6B7280 — muted green */}
-            </div>
+          {/* ── ROW 1: all badges in one line, wrapping gracefully ───────── */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '6px 8px',
+              marginBottom: 10,
+            }}>
+            {/* Label */}
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: '#4D8A63',
+                whiteSpace: 'nowrap',
+              }}>
+              Storyboard Preview
+            </span>
 
-            {/* Style tags */}
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              {[data.globalStyle.visualStyle, data.globalStyle.colorPalette].map((tag) => (
-                <span
-                  key={tag}
+            <span key="dot-1" style={{ color: 'rgba(34,197,94,0.4)', fontSize: 10, lineHeight: 1 }}>
+              •
+            </span>
+
+            {/* Type + duration */}
+            <span
+              key="type-duration"
+              style={{
+                fontSize: 11,
+                padding: '2px 9px',
+                borderRadius: 20,
+                background: 'rgba(56,189,248,0.12)',
+                color: '#0369A1',
+                border: '1px solid rgba(56,189,248,0.3)',
+                whiteSpace: 'nowrap',
+                fontWeight: 500,
+              }}>
+              {data.structure.type} · {totalDuration}s
+            </span>
+
+            <span key="dot-2" style={{ color: 'rgba(34,197,94,0.4)', fontSize: 10, lineHeight: 1 }}>
+              •
+            </span>
+
+            {/* Style tags — click to expand/collapse if truncated */}
+            {[
+              { tag: data.globalStyle.visualStyle, key: 'style-visual' },
+              { tag: data.globalStyle.colorPalette, key: 'style-palette' },
+            ].map(({ tag, key }) => {
+              const isExpanded = expandedTags.has(key);
+              return (
+                <button
+                  key={key}
+                  onClick={() => toggleTag(key)}
+                  title={isExpanded ? 'Click to collapse' : tag}
                   style={{
+                    all: 'unset',
                     fontSize: 11,
-                    padding: '4px 10px',
-                    borderRadius: 8,
-                    background: 'rgba(250,204,21,0.15)', // was rgba(255,255,255,0.05) — sunny yellow tint
-                    border: '1px solid rgba(250,204,21,0.4)', // was rgba(255,255,255,0.08) — yellow border
-                    color: '#854D0E', // was #9CA3AF — warm amber-brown text
-                    whiteSpace: 'nowrap',
+                    padding: '2px 9px',
+                    borderRadius: 20,
+                    background: 'rgba(250,204,21,0.15)',
+                    border: `1px solid ${isExpanded ? 'rgba(250,204,21,0.75)' : 'rgba(250,204,21,0.4)'}`,
+                    color: '#854D0E',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    maxWidth: isExpanded ? 'none' : 180,
+                    overflow: 'hidden',
+                    whiteSpace: isExpanded ? 'normal' : 'nowrap',
+                    textOverflow: isExpanded ? 'unset' : 'ellipsis',
+                    display: 'inline-block',
+                    wordBreak: isExpanded ? 'break-word' : 'normal',
+                    transition: 'border-color 0.15s, max-width 0.2s',
                   }}>
                   {tag}
-                </span>
-              ))}
-            </div>
+                </button>
+              );
+            })}
           </div>
 
+          {/* ── ROW 2: Title + Hook (click to expand/collapse) ───────────── */}
+          <button
+            onClick={() => setHeaderExpanded((prev) => !prev)}
+            style={{
+              all: 'unset',
+              display: 'block',
+              cursor: 'pointer',
+              width: '100%',
+              textAlign: 'left',
+            }}
+            title={headerExpanded ? 'Click to collapse' : 'Click to expand'}>
+            <h2
+              style={{
+                fontSize: 17,
+                fontWeight: 700,
+                color: '#0C2A1A',
+                lineHeight: 1.35,
+                margin: 0,
+                display: headerExpanded ? 'block' : '-webkit-box',
+                WebkitLineClamp: headerExpanded ? 'none' : 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: headerExpanded ? 'visible' : 'hidden',
+              }}>
+              {data.concept.title}
+            </h2>
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 4 }}>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: '#4D8A63',
+                  margin: 0,
+                  lineHeight: 1.5,
+                  flex: 1,
+                  display: headerExpanded ? 'block' : '-webkit-box',
+                  WebkitLineClamp: headerExpanded ? 'none' : 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: headerExpanded ? 'visible' : 'hidden',
+                }}>
+                {data.concept.hook}
+              </p>
+              {/* subtle expand/collapse indicator */}
+              <span
+                style={{
+                  fontSize: 10,
+                  color: '#86BFAA',
+                  whiteSpace: 'nowrap',
+                  marginTop: 2,
+                  flexShrink: 0,
+                  transition: 'color 0.15s',
+                }}>
+                {headerExpanded ? '▲ less' : '▼ more'}
+              </span>
+            </div>
+          </button>
+
           {/* ── TIMELINE BAR ─────────────────────────────────────────────── */}
-          <div style={{ marginTop: 16, display: 'flex', gap: 3, height: 6, borderRadius: 6, overflow: 'hidden' }}>
+          <div style={{ marginTop: 14, display: 'flex', gap: 3, height: 5, borderRadius: 6, overflow: 'hidden' }}>
             {data.scenes.map((s, i) => {
               const cfg = PURPOSE_CONFIG[s.purpose] ?? { color: '#6B7280', bg: '', label: '' };
               const widthPct = ((s.endTime - s.startTime) / totalDuration) * 100;
               return (
                 <button
-                  key={s.id}
+                  key={`${s.id}-${i}`} // <--- make sure key is unique
                   onClick={() => setActiveScene(i)}
                   style={{
                     width: `${widthPct}%`,
-                    background: i === activeScene ? cfg.color : 'rgba(0,0,0,0.1)', // was rgba(255,255,255,0.12) — light gray on light bg
+                    background: i === activeScene ? cfg.color : 'rgba(0,0,0,0.1)',
                     borderRadius: 3,
                     border: 'none',
                     cursor: 'pointer',
@@ -274,6 +367,43 @@ export default function StoryboardPreviewModal({
             gap: 20,
           }}>
           {/* ── SCENE STRIP ────────────────────────────────────────────── */}
+          {/* Generate All row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: '#4D8A63',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+              }}>
+              Scenes
+            </span>
+            <button
+              onClick={generateAll}
+              disabled={isGeneratingAll}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '5px 14px',
+                borderRadius: 20,
+                background: isGeneratingAll ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.12)',
+                border: '1.5px solid rgba(34,197,94,0.35)',
+                color: isGeneratingAll ? '#86BFAA' : '#166534',
+                cursor: isGeneratingAll ? 'not-allowed' : 'pointer',
+                transition: 'all 0.18s',
+              }}>
+              {isGeneratingAll ?
+                <>
+                  <Spinner size={12} color="#86BFAA" /> Generating...
+                </>
+              : <>✦ Generate All Images</>}
+            </button>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, flexShrink: 0 }}>
             {data.scenes.map((s, i) => {
               const cfg = PURPOSE_CONFIG[s.purpose] ?? {
@@ -288,8 +418,8 @@ export default function StoryboardPreviewModal({
                   onClick={() => setActiveScene(i)}
                   style={{
                     flex: 1,
-                    background: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.55)', // was 0.06/0.02 — bright white cards
-                    border: `1.5px solid ${isActive ? cfg.color : 'rgba(34,197,94,0.2)'}`, // was rgba(255,255,255,0.07) — green border
+                    background: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.55)',
+                    border: `1.5px solid ${isActive ? cfg.color : 'rgba(34,197,94,0.2)'}`,
                     borderRadius: 14,
                     padding: '12px 10px',
                     cursor: 'pointer',
@@ -298,7 +428,6 @@ export default function StoryboardPreviewModal({
                     position: 'relative',
                     overflow: 'hidden',
                   }}>
-                  {/* accent top bar */}
                   {isActive && (
                     <div
                       style={{
@@ -313,24 +442,22 @@ export default function StoryboardPreviewModal({
                     />
                   )}
 
-                  {/* scene number */}
                   <div
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
                       letterSpacing: '0.06em',
-                      color: isActive ? cfg.color : '#86BFAA', // was #4B5563 — soft muted green
+                      color: isActive ? cfg.color : '#86BFAA',
                       marginBottom: 6,
                     }}>
                     SCENE {i + 1}
                   </div>
 
-                  {/* preview box — aspect ratio 16:9 */}
                   <div
                     style={{
                       width: '100%',
                       aspectRatio: '16/9',
-                      background: isActive ? cfg.bg : 'rgba(56,189,248,0.07)', // was rgba(255,255,255,0.03) — sky blue tint
+                      background: isActive ? cfg.bg : 'rgba(56,189,248,0.07)',
                       borderRadius: 8,
                       display: 'flex',
                       alignItems: 'center',
@@ -339,30 +466,72 @@ export default function StoryboardPreviewModal({
                       position: 'relative',
                       overflow: 'hidden',
                     }}>
-                    <span style={{ fontSize: 20 }}>
-                      {s.purpose === 'hook' ?
-                        '🎣'
-                      : s.purpose === 'build' ?
-                        '🔨'
-                      : s.purpose === 'payoff' ?
-                        '✅'
-                      : '📣'}
-                    </span>
-                    {/* timecode */}
+                    {/* Generated image */}
+                    {sceneImages[i] ?
+                      <img
+                        src={`data:image/png;base64,${sceneImages[i]}`}
+                        alt={`Scene ${i + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
+                      />
+                    : loadingScenes.has(i) ?
+                      <Spinner size={20} color={cfg.color} />
+                    : <span style={{ fontSize: 20 }}>
+                        {s.purpose === 'hook' ?
+                          '🎣'
+                        : s.purpose === 'build' ?
+                          '🔨'
+                        : s.purpose === 'payoff' ?
+                          '✅'
+                        : '📣'}
+                      </span>
+                    }
+
+                    {/* Timecode */}
                     <div
                       style={{
                         position: 'absolute',
                         bottom: 4,
                         right: 6,
                         fontSize: 9,
-                        color: 'rgba(0,0,0,0.3)', // was rgba(255,255,255,0.4) — dark on light bg
+                        color: sceneImages[i] ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.3)',
                         fontFamily: 'monospace',
+                        zIndex: 1,
                       }}>
                       {s.startTime}s–{s.endTime}s
                     </div>
+
+                    {/* Generate Single button — bottom-left of preview box */}
+                    {!loadingScenes.has(i) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          generateSingle(i);
+                        }}
+                        title="Generate image for this scene"
+                        style={{
+                          position: 'absolute',
+                          bottom: 4,
+                          left: 5,
+                          zIndex: 2,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          fontSize: 9,
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: 6,
+                          background: sceneImages[i] ? 'rgba(0,0,0,0.55)' : cfg.bg,
+                          border: `1px solid ${sceneImages[i] ? 'rgba(255,255,255,0.2)' : cfg.color + '60'}`,
+                          color: sceneImages[i] ? 'rgba(255,255,255,0.9)' : cfg.color,
+                          cursor: 'pointer',
+                          letterSpacing: '0.03em',
+                          transition: 'opacity 0.15s',
+                        }}>
+                        {sceneImages[i] ? '↺ Re-gen' : '✦ Gen'}
+                      </button>
+                    )}
                   </div>
 
-                  {/* purpose badge */}
                   <div
                     style={{
                       display: 'inline-flex',
@@ -386,9 +555,9 @@ export default function StoryboardPreviewModal({
           {/* ── DETAIL PANEL ───────────────────────────────────────────── */}
           <div
             style={{
-              minHeight: 380,
-              background: '#FFFFFF', // was rgba(255,255,255,0.03) — clean white panel
-              border: '1px solid rgba(34,197,94,0.18)', // was rgba(255,255,255,0.07) — green border
+              minHeight: 420,
+              background: '#FFFFFF',
+              border: '1px solid rgba(34,197,94,0.18)',
               borderRadius: 16,
               overflow: 'hidden',
               display: 'flex',
@@ -398,7 +567,7 @@ export default function StoryboardPreviewModal({
               style={{
                 flex: 1,
                 padding: '20px 24px',
-                borderRight: '1px solid rgba(34,197,94,0.12)', // was rgba(255,255,255,0.06)
+                borderRight: '1px solid rgba(34,197,94,0.12)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 12,
@@ -409,7 +578,7 @@ export default function StoryboardPreviewModal({
                     fontSize: 11,
                     fontWeight: 600,
                     letterSpacing: '0.08em',
-                    color: '#4D8A63', // was #4B5563 — muted green label
+                    color: '#4D8A63',
                     textTransform: 'uppercase',
                     marginBottom: 6,
                   }}>
@@ -460,14 +629,14 @@ export default function StoryboardPreviewModal({
                 flexDirection: 'column',
                 gap: 14,
                 flexShrink: 0,
-                background: '#F0F9FF', // sky blue tint for right panel
+                background: '#F0F9FF',
               }}>
               <p
                 style={{
                   fontSize: 11,
                   fontWeight: 600,
                   letterSpacing: '0.08em',
-                  color: '#0369A1', // was #4B5563 — sky blue label
+                  color: '#0369A1',
                   textTransform: 'uppercase',
                   margin: 0,
                 }}>
@@ -484,7 +653,35 @@ export default function StoryboardPreviewModal({
                 onChange={(v) => updateScene('soundEffect', v)}
               />
 
-              {/* purpose chip */}
+              {/* Audio preview — shown only when a URL is available */}
+              {scene.soundEffect.url && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color: '#0369A1',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.07em',
+                      fontWeight: 600,
+                    }}>
+                    🎧 Preview
+                  </span>
+                  <audio
+                    controls
+                    key={scene.soundEffect.url}
+                    style={{
+                      width: '100%',
+                      height: 32,
+                      borderRadius: 8,
+                      outline: 'none',
+                      accentColor: '#0369A1',
+                    }}>
+                    <source src={scene.soundEffect.url} type="audio/mpeg" />
+                    Your browser does not support the audio element.
+                  </audio>
+                </div>
+              )}
+
               <div style={{ marginTop: 'auto' }}>
                 <div
                   style={{
@@ -513,6 +710,21 @@ export default function StoryboardPreviewModal({
 }
 
 // ─── SUB-COMPONENTS ──────────────────────────────────────────────────────────
+function Spinner({ size = 16, color = '#4D8A63' }: { size?: number; color?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      style={{ animation: 'spin 0.8s linear infinite', flexShrink: 0 }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <circle cx="12" cy="12" r="10" stroke={color} strokeOpacity="0.25" strokeWidth="3" />
+      <path d="M12 2a10 10 0 0 1 10 10" stroke={color} strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function Tag({ icon, label, color }: { icon: string; label: string; color?: string }) {
   return (
     <span
@@ -523,9 +735,9 @@ function Tag({ icon, label, color }: { icon: string; label: string; color?: stri
         fontSize: 12,
         padding: '4px 10px',
         borderRadius: 8,
-        background: 'rgba(250,204,21,0.12)', // was rgba(255,255,255,0.05) — sunny yellow tint
-        border: '1px solid rgba(250,204,21,0.35)', // was rgba(255,255,255,0.08) — yellow border
-        color: color ?? '#4D8A63', // was #9CA3AF — muted green default
+        background: 'rgba(250,204,21,0.12)',
+        border: '1px solid rgba(250,204,21,0.35)',
+        color: color ?? '#4D8A63',
       }}>
       {icon} {label}
     </span>
