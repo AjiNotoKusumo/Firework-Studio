@@ -35,6 +35,7 @@ export default function TrendingPage() {
   const [posts, setPosts] = useState<TrendingPost[]>([]);
   const [selectedPost, setSelectedPost] = useState<TrendingPost | null>(null);
   const [savedPosts, setSavedPosts] = useState<string[]>([]);
+  const [twitterHashtags, setTwitterHashtags] = useState<Hashtag[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function fetchDataInstagram() {
@@ -81,8 +82,8 @@ export default function TrendingPage() {
         url: post.url || '',
       }));
 
-      setHashtags(prev => [...prev, ...formattedHashtags]);
-      setPosts(prev => [...prev, ...formattedPosts]);
+      setHashtags((prev) => [...prev, ...formattedHashtags]);
+      setPosts((prev) => [...prev, ...formattedPosts]);
     } catch (err) {
       console.error('Error fetching data:', err);
     } finally {
@@ -92,36 +93,43 @@ export default function TrendingPage() {
 
   async function fetchDataTwitter() {
     try {
-      const response = await fetch('/api/trending/twitter');
+      setLoading(true);
 
-<<<<<<< HEAD
-      const data = await response.json();
+      const [hashtagsRes, postsRes] = await Promise.all([
+        fetch('/api/hashtags/twitter'),
+        fetch('/api/trending/twitter'),
+      ]);
 
-      console.log('Twitter trending data:', data);
-=======
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const hashtagsData = await hashtagsRes.json().catch(() => ({ hashtags: [] }));
+      const postsData = await postsRes.json().catch(() => []);
 
-      const data = await response.json()
+      // ---------------- TWITTER HASHTAGS ----------------
+      const formattedTwitterHashtags: Hashtag[] = (hashtagsData.hashtags || [])
+        .map((tag: any) => ({ name: tag.name.replace(/^#/, ''), value: tag.value || 0 }))
+        .slice(0, 20); // pick top 20 trends
 
-      const formattedPosts: TrendingPost[] = (data || []).map((post: any, i: number) => ({
+      // ---------------- TWITTER POSTS ----------------
+      const formattedPosts: TrendingPost[] = (postsData || []).map((post: any, i: number) => ({
         id: post.id || `tweet-${i}`,
-        imageUrl: post.media[0] || "https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
+        imageUrl:
+          post.media?.[0] ||
+          'https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg',
         caption: post.text || '',
         likes: post.likesCount || 0,
         comments: post.replyCount || 0,
         shares: post.retweetCount || 0,
         status: getStatus(post.likesCount || 0, post.replyCount || 0),
         platform: 'twitter',
-        author: { name: post.author.userName || 'unknown', avatar: '' },
+        author: { name: post.author?.userName || 'unknown', avatar: '' },
         url: post.url || '',
       }));
 
-      setPosts(prev => [...prev, ...formattedPosts]);
->>>>>>> a4ee9f5dbd461651c0f7574547eb1ac52de0fe2d
-    } catch (error) {
-      console.error('Error fetching Twitter data:', error);
+      setTwitterHashtags(formattedTwitterHashtags);
+      setPosts((prev) => [...prev, ...formattedPosts]);
+    } catch (err) {
+      console.error('Error fetching Twitter data:', err);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -144,7 +152,7 @@ export default function TrendingPage() {
       {/* ---------------- TWITTER HASHTAGS GRID ---------------- */}
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-2 text-foreground">Top Twitter Hashtags</h2>
-        <p className="text-sm text-muted-foreground mb-4">Live trending hashtags (no counts)</p>
+        <p className="text-sm text-muted-foreground mb-4">Live trending hashtags</p>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full">
           {twitterHashtags.map((tag) => (
