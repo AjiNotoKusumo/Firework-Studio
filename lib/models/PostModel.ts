@@ -97,6 +97,8 @@ export default class PostModel {
             throw { message: "platform is required to update a post", status: 400 };
         }
 
+        console.log("Updating post with data:", postId);
+
         const postExists = await prisma.post.findUnique({
             where: { id: postId },
         });
@@ -115,6 +117,10 @@ export default class PostModel {
                 status,
                 postType,
                 scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+                media: {
+                    deleteMany: {}, // This will remove existing media associations
+                    create: data.images ? data.images.map((url: string, index: number) => ({ url, order: index + 1 })) : [], // Add new media associations
+                },
             },
         });
 
@@ -186,5 +192,64 @@ export default class PostModel {
         });
 
         return { message: "Saved post deleted successfully" };
+    }
+
+    static async savePlanning(planningData: any) {
+        if (!planningData) {
+            throw { message: "Planning data is required", status: 400 };
+        }
+
+        const {postId, concept, globalStyle, structure, scenes} = planningData;
+
+        const planning = await prisma.planning.create({
+            data: {
+                postId,
+                concept,
+                globalStyle,
+                structure,
+                scenes: {
+                    create: scenes.map((scene: any) => ({
+                        sceneNumber: scene.sceneNumber,
+                        scene: scene
+                    })),
+                },
+            }
+        })
+        
+        return planning;
+
+    }
+
+    static async getPlanningByUser(userId: string) {
+        if (!userId) {
+            throw { message: "userId is required to get planning data", status: 400 };
+        }
+
+        const plannings = await prisma.planning.findMany({
+            where: {
+                post: {
+                    userId
+                }
+            },
+            include: {
+                scenes: {
+                    orderBy: { sceneNumber: "asc" }
+                }
+            }
+        });
+
+        return plannings;
+    }
+
+    static async getSceneByPlanning(planId: string) {
+        if (!planId) {
+            throw { message: "planId is required to get scene data", status: 400 };
+        }
+
+        const scenes = await prisma.scene.findMany({
+            where: { planningId: planId },
+            orderBy: { sceneNumber: "asc" }
+        });
+        return scenes;
     }
 }

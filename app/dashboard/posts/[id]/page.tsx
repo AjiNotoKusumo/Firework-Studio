@@ -159,7 +159,7 @@ export default function ViewPostPage() {
             {/* Main Image */}
             <div className="relative aspect-square rounded-[16px] overflow-hidden bg-secondary mb-4">
               <Image
-                src={post.media?.[selectedImageIndex] || "https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg"}
+                src={post.media?.[selectedImageIndex]?.url || "https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg"}
                 alt={post.caption}
                 fill
                 className="object-cover"
@@ -191,7 +191,7 @@ export default function ViewPostPage() {
                     }`}
                   >
                     <Image
-                      src={img}
+                      src={img.url}
                       alt={`Thumbnail ${index + 1}`}
                       fill
                       className="object-cover"

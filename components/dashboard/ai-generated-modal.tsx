@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 
 // ─── PURPOSE COLORS ──────────────────────────────────────────────────────────
 const PURPOSE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -43,12 +43,16 @@ type Scene = {
   sceneNumber?: number;
   purpose: string;
   description: string;
-  startTime: number;
-  endTime: number;
-  camera: string;
-  motion: string;
+  startTime?: number;
+  endTime?: number;
+  camera?: string;
+  motion?: string;
   emotion: string;
-  soundEffect: { name: string; url?: string };
+  soundEffect?: { name: string; url?: string };
+  headline?: string;
+  textOverlay?: string;
+  visualFocus?: string;
+  filter?: string;
 };
 
 // ─── MAIN MODAL ──────────────────────────────────────────────────────────────
@@ -56,10 +60,14 @@ export default function StoryboardPreviewModal({
   open,
   onOpenChange,
   storyboardData,
+  postId,
+  planId
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  storyboardData: StoryboardData | null;
+  storyboardData: any | null;
+  postId?: string;
+  planId?: string;
 }) {
   const [activeScene, setActiveScene] = useState<number>(0);
   const [scenes, setScenes] = useState<Scene[]>([]);
@@ -68,6 +76,33 @@ export default function StoryboardPreviewModal({
   const [sceneImages, setSceneImages] = useState<Record<number, string>>({});
   const [loadingScenes, setLoadingScenes] = useState<Set<number>>(new Set());
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const fetchSceneImage = async () => {
+    if (!planId) return;
+    console.log(`Fetching scene image for planId: ${planId}`);
+    try {
+      const response = await fetch(`/api/ai/scene/${planId}`);
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch posts")
+      }
+
+      const data = await response.json()
+      
+
+      console.log("Scene image data:", data);
+      const tempObj : any = {}
+      
+      data.forEach((scene: any, index: number) => {
+        tempObj[index] = scene.scene.image
+      })
+      
+      setSceneImages(tempObj)
+    } catch (err) {
+      console.error('Failed to fetch scene image:', err);
+    }
+  }
 
   const toggleTag = (key: string) =>
     setExpandedTags((prev) => {
@@ -176,6 +211,12 @@ export default function StoryboardPreviewModal({
     }
   }, [storyboardData]);
 
+  useEffect(() => {
+    if (planId) {
+      fetchSceneImage();
+    }
+  }, [planId]);
+
   const updateScene = (field: keyof Scene, value: string) => {
     setScenes((prev) =>
       prev.map((s, i) => {
@@ -195,7 +236,7 @@ export default function StoryboardPreviewModal({
     scenes,
   };
 
-  const totalDuration = data.scenes[data.scenes.length - 1].endTime;
+  const totalDuration = data.structure === 'video' ? data.scenes[data.scenes.length - 1].endTime : data.scenes.length;
   const scene = data.scenes[activeScene];
   const purposeCfg = PURPOSE_CONFIG[scene.purpose] ?? {
     label: scene.purpose,
@@ -205,6 +246,7 @@ export default function StoryboardPreviewModal({
 
   const handleSaveAll = async () => {
     try {
+      setIsSaving(true);
       const uploadedImages: Record<number, string> = {};
 
       // upload only base64 ones
@@ -242,6 +284,7 @@ export default function StoryboardPreviewModal({
 
       // 🔥 FINAL OBJECT
       const finalPayload = {
+        postId,
         concept: data.concept,
         globalStyle: data.globalStyle,
         structure: data.structure,
@@ -253,10 +296,14 @@ export default function StoryboardPreviewModal({
 
       console.log('FINAL SAVE OBJECT:', finalPayload);
 
-      // 👉 optional: send to your DB
-      // await fetch('/api/save-storyboard', { method: 'POST', body: JSON.stringify(finalPayload) })
+      const res = await fetch('/api/ai/planning', {
+        method: 'POST',
+        body: JSON.stringify(finalPayload)
+      });
     } catch (err) {
       console.error('Save all failed:', err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -325,7 +372,7 @@ export default function StoryboardPreviewModal({
                 whiteSpace: 'nowrap',
                 fontWeight: 500,
               }}>
-              {data.structure} · {totalDuration}s
+              {data.structure} · {data.structure === 'video' ? `${totalDuration}s` : `${data.scenes.length} scenes`}
             </span>
 
             <span key="dot-2" style={{ color: 'rgba(34,197,94,0.4)', fontSize: 10, lineHeight: 1 }}>
@@ -334,8 +381,8 @@ export default function StoryboardPreviewModal({
 
             {/* Style tags — click to expand/collapse if truncated */}
             {[
-              { tag: data.globalStyle.visualStyle, key: 'style-visual' },
-              { tag: data.globalStyle.colorPalette, key: 'style-palette' },
+              { tag: data?.globalStyle?.visualStyle, key: 'style-visual' },
+              { tag: data?.globalStyle?.colorPalette, key: 'style-palette' },
             ].map(({ tag, key }) => {
               const isExpanded = expandedTags.has(key);
               return (
@@ -390,7 +437,7 @@ export default function StoryboardPreviewModal({
                 WebkitBoxOrient: 'vertical',
                 overflow: headerExpanded ? 'visible' : 'hidden',
               }}>
-              {data.concept.title}
+              {data?.concept?.title}
             </h2>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 4 }}>
@@ -406,7 +453,7 @@ export default function StoryboardPreviewModal({
                   WebkitBoxOrient: 'vertical',
                   overflow: headerExpanded ? 'visible' : 'hidden',
                 }}>
-                {data.concept.hook}
+                {data?.concept?.hook}
               </p>
               {/* subtle expand/collapse indicator */}
               <span
@@ -427,10 +474,10 @@ export default function StoryboardPreviewModal({
           <div style={{ marginTop: 14, display: 'flex', gap: 3, height: 5, borderRadius: 6, overflow: 'hidden' }}>
             {data.scenes.map((s, i) => {
               const cfg = PURPOSE_CONFIG[s.purpose] ?? { color: '#6B7280', bg: '', label: '' };
-              const widthPct = ((s.endTime - s.startTime) / totalDuration) * 100;
+              const widthPct = s.endTime && s.startTime && totalDuration ? ((s.endTime - s.startTime) / totalDuration) * 100 : 0;
               return (
                 <button
-                  key={`${s.id}-${i}`} // <--- make sure key is unique
+                  key={`${s.sceneNumber}-${i}`} // <--- make sure key is unique
                   onClick={() => setActiveScene(i)}
                   style={{
                     width: `${widthPct}%`,
@@ -460,7 +507,9 @@ export default function StoryboardPreviewModal({
           }}>
           {/* ── SCENE STRIP ────────────────────────────────────────────── */}
           {/* Generate All row */}
+          
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6}}>
             <span
               style={{
                 fontSize: 11,
@@ -494,6 +543,31 @@ export default function StoryboardPreviewModal({
                 </>
               : <>✦ Generate All Images</>}
             </button>
+            </div>
+
+            <button
+              onClick={handleSaveAll}
+              disabled={isSaving}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '5px 14px',
+                borderRadius: 20,
+                background: isSaving ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.12)',
+                border: '1.5px solid rgba(34,197,94,0.35)',
+                color: isSaving ? '#86BFAA' : '#166534',
+                cursor: isSaving ? 'not-allowed' : 'pointer',
+                transition: 'all 0.18s',
+              }}>
+              {isSaving ?
+                <>
+                  <Spinner size={12} color="#86BFAA" /> Generating...
+                </>
+              : <>Save</>}
+            </button>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, flexShrink: 0 }}>
@@ -506,7 +580,7 @@ export default function StoryboardPreviewModal({
               const isActive = i === activeScene;
               return (
                 <div
-                  key={s.id}
+                  key={s.sceneNumber || i}
                   role="button"
                   tabIndex={0}
                   onClick={() => setActiveScene(i)}
@@ -583,7 +657,8 @@ export default function StoryboardPreviewModal({
                     }
 
                     {/* Timecode */}
-                    <div
+                    {s.headline ? (
+                      <div
                       style={{
                         position: 'absolute',
                         bottom: 4,
@@ -593,8 +668,23 @@ export default function StoryboardPreviewModal({
                         fontFamily: 'monospace',
                         zIndex: 1,
                       }}>
-                      {s.startTime}s–{s.endTime}s
+                      {s.sceneNumber}
                     </div>
+                    ) : (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 4,
+                          right: 6,
+                          fontSize: 9,
+                          color: sceneImages[i] ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.3)',
+                          fontFamily: 'monospace',
+                          zIndex: 1,
+                        }}>
+                        {s.startTime}s–{s.endTime}s
+                      </div>
+                    )}
+                    
 
                     {/* Generate Single button — bottom-left of preview box */}
                     {!loadingScenes.has(i) && (
@@ -707,7 +797,7 @@ export default function StoryboardPreviewModal({
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
                 <div className="flex-1">
-                  <Tag icon="⏱" label={`${scene.startTime}s → ${scene.endTime}s`} />
+                  <Tag icon="⏱" label={scene.startTime ?`${scene.startTime}s → ${scene.endTime}s` : `${scene.sceneNumber} Scene`} />
                   <Tag icon="🎭" label={scene.emotion} color={purposeCfg.color} />
                 </div>
               </div>
@@ -736,18 +826,28 @@ export default function StoryboardPreviewModal({
                 Production Notes
               </p>
 
-              <DetailRow icon="🎥" label="Camera" value={scene.camera} onChange={(v) => updateScene('camera', v)} />
-              <DetailRow icon="🎬" label="Motion" value={scene.motion} onChange={(v) => updateScene('motion', v)} />
+              <DetailRow icon="🎥" label={scene.camera ? 'Camera' : 'Visual Focus'} value={scene.camera ? scene.camera as string : scene.visualFocus as string} onChange={(v) => updateScene(scene.camera ? 'camera' : 'visualFocus', v)} />
+              <DetailRow icon="🎬" label={scene.motion ? 'Motion' : 'Text overlay'} value={scene.motion ? scene.motion as string : scene.textOverlay as string} onChange={(v) => updateScene(scene.motion ? 'motion' : 'textOverlay', v)} />
               <DetailRow icon="💭" label="Emotion" value={scene.emotion} onChange={(v) => updateScene('emotion', v)} />
-              <DetailRow
-                icon="🔊"
-                label="Sound"
-                value={scene.soundEffect.name}
-                onChange={(v) => updateScene('soundEffect', v)}
-              />
+              
+              {scene.soundEffect ? (
+                <DetailRow
+                  icon="🔊"
+                  label="Sound"
+                  value={scene.soundEffect.name}
+                  onChange={(v) => updateScene('soundEffect', v)}
+                />
+              ) : (
+                <DetailRow
+                  icon="🌟"
+                  label="Filter"
+                  value={scene.filter as string || ''}
+                  onChange={(v) => updateScene('filter', v)}
+                />
+              )}
 
               {/* Audio preview — shown only when a URL is available */}
-              {scene.soundEffect.url && (
+              {scene.soundEffect && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span
                     style={{

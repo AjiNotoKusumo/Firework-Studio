@@ -24,6 +24,7 @@ interface PostFormProps {
   mode: 'create' | 'edit';
   formData: any;
   setFormData: React.Dispatch<React.SetStateAction<any>>;
+  postId?: string;
 }
 
 interface User {
@@ -40,13 +41,12 @@ const dummyUsers: User[] = [
 const dummyHashtags = ['#fitness', '#travel', '#food', '#coding'];
 const mockLocations = ['New York', 'Paris', 'Tokyo', 'Rio de Janeiro'];
 
-export function PostForm({ initialData, mode, formData, setFormData }: PostFormProps) {
+export function PostForm({ initialData, mode, formData, setFormData, postId }: PostFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [postId, setPostId] = useState<any>('');
   const [isUploading, setIsUploading] = useState(false);
 
   const [hashtags, setHashtags] = useState<string[]>([]);
@@ -240,51 +240,11 @@ export function PostForm({ initialData, mode, formData, setFormData }: PostFormP
     }
   };
 
-  const createInstance = async () => {
-    try {
-      if (mode === 'create') {
-        const existingId = localStorage.getItem('creatingPostId');
-
-        if (existingId && existingId !== 'pending') {
-          setPostId(existingId);
-          return;
-        }
-
-        if (existingId === 'pending') {
-          return;
-        }
-
-        localStorage.setItem('creatingPostId', 'pending');
-
-        const res = await fetch('/api/posts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        });
-
-        if (!res.ok) {
-          throw new Error('Failed to create post instance');
-        }
-
-        const post = await res.json();
-
-        localStorage.setItem('creatingPostId', post.data.id);
-        setPostId(post.data.id);
-      }
-    } catch (error) {
-      console.log('Error creating post instance:', error);
-      router.push('/dashboard/planning');
-    }
-  };
+  
 
   const filteredUsers = dummyUsers.filter((u) => u.username.includes(dropdownFilter));
   const filteredHashtags = dummyHashtags.filter((tag) => tag.includes(dropdownFilter));
 
-  useEffect(() => {
-    if (mode === 'create') {
-      createInstance();
-    }
-  }, []);
 
   return (
     <div className="flex flex-col h-full relative">

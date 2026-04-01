@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import StoryboardPreviewModal from '@/components/dashboard/ai-generated-modal';
 
@@ -71,8 +71,31 @@ type RedzoneIdea = (typeof redzoneIdeasData)[number];
 
 // ---------------- PAGE ----------------
 export default function RedzonePage() {
-  const [ideas] = useState<RedzoneIdea[]>(redzoneIdeasData);
-  const [selectedIdea, setSelectedIdea] = useState<RedzoneIdea | null>(null);
+  const [ideas, setIdeas] = useState<any[]>([]);
+  const [selectedIdea, setSelectedIdea] = useState<any>(null);
+
+  const fetchIdeas = async () => {
+    try {
+      const response = await fetch("/api/ai/planning")
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch posts")
+      }
+
+      const data = await response.json()
+
+      console.log(data);
+      
+
+      setIdeas(data)
+    } catch (error) {
+      console.error("Failed to fetch ideas:", error);
+    }
+  }
+
+  useEffect(() => {
+    fetchIdeas()
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FFF5F7] via-white to-[#FFF0F3] p-8">
@@ -91,7 +114,7 @@ export default function RedzonePage() {
             {/* Image */}
             <div className="relative h-48 w-full overflow-hidden">
               <img
-                src={idea.imageUrl}
+                src={idea.scenes?.[0].scene.image || 'https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg'}
                 alt="idea"
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
@@ -107,10 +130,10 @@ export default function RedzonePage() {
                 <span className="text-xs font-medium text-pink-500">AI Idea</span>
               </div>
 
-              <h3 className="text-sm font-semibold text-foreground line-clamp-2">{idea.storyboard.concept.hook}</h3>
+              <h3 className="text-sm font-semibold text-foreground line-clamp-2">{idea.concept.hook}</h3>
 
               <p className="text-xs text-muted-foreground mt-2">
-                {idea.storyboard.scenes.length} scenes • {idea.storyboard.structure.type}
+                {idea.scenes.length} scenes • {idea.structure}
               </p>
             </div>
           </button>
@@ -134,7 +157,13 @@ export default function RedzonePage() {
       <StoryboardPreviewModal
         open={!!selectedIdea}
         onOpenChange={(open) => !open && setSelectedIdea(null)}
-        storyboardData={selectedIdea?.storyboard ?? null}
+        storyboardData={{
+          concept: selectedIdea?.concept,
+          globalStyle: selectedIdea?.globalStyle,
+          structure: { type: selectedIdea?.structure },
+          scenes: selectedIdea?.scenes.map((s: any) => s.scene),
+        }}
+        planId={selectedIdea?.id}
       />
     </div>
   );

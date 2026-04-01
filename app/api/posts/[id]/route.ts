@@ -55,7 +55,8 @@ export async function PATCH(
       hashtags: postData.hashtags,
       platform: postData.platform,
       postType: postData.postType,
-      status: postData.status
+      status: postData.status,
+      images: postData.images
     })
     
     return Response.json({"message": "Post updated successfully"}, { status: 200 })
