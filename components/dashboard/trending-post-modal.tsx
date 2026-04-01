@@ -75,18 +75,7 @@ export function TrendingPostModal({ post, open, onOpenChange, onSave, isSaved = 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/*
-        FIXES:
-        1. w-[calc(100vw-2rem)] ensures the modal never exceeds viewport width
-        2. max-w-2xl caps it on large screens
-        3. No fixed height on the outer shell — let content define height
-        4. max-h-[85vh] + overflow-hidden on DialogContent is the ceiling
-        5. Right column: flex-col h-full overflow-hidden
-        6. Scrollable body: flex-1 min-h-0 overflow-y-auto
-        7. Footer: flex-shrink-0, buttons don't use flex-1 so they size to content
-           and wrap gracefully — no horizontal overflow
-      */}
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl p-0 rounded-[24px] overflow-hidden border border-border shadow-xl max-h-[85vh] flex flex-col">
+      <DialogContent className="!w-[95vw] !max-w-6xl p-0 rounded-[24px] overflow-hidden border border-border shadow-xl max-h-[85vh] flex flex-col">
         <div className="flex flex-col sm:flex-row flex-1 min-h-0 overflow-hidden">
           {/* ═══ LEFT — Image ═══ */}
           <div className="relative sm:w-[40%] flex-shrink-0 bg-muted overflow-hidden">

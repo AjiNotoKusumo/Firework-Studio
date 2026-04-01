@@ -79,24 +79,59 @@ export default function StoryboardPreviewModal({
   // ── IMAGE GENERATION ────────────────────────────────────────────────────────
   const generateSingle = async (sceneIndex: number) => {
     if (!storyboardData) return;
+
     const s = data.scenes[sceneIndex];
     setLoadingScenes((prev) => new Set(prev).add(sceneIndex));
+
     try {
-      const payload = {
-        concept: storyboardData.concept,
-        globalStyle: storyboardData.globalStyle,
-        structure: storyboardData.structure.type,
-        scene: s,
-      };
       const res = await fetch('/api/ai/images/generate-single', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          concept: storyboardData.concept,
+          globalStyle: storyboardData.globalStyle,
+          structure: storyboardData.structure.type,
+          scene: s,
+        }),
       });
-      // response is { ...scene, image: string }
+
       const result = (await res.json()) as { image: string };
+
       if (result.image) {
-        setSceneImages((prev) => ({ ...prev, [sceneIndex]: result.image }));
+        // 🔥 upload immediately
+        const blob = await fetch(`data:image/png;base64,${result.image}`).then((r) => r.blob());
+
+        const file = new File([blob], `scene-${sceneIndex}.png`, {
+          type: 'image/png',
+        });
+
+        const body = new FormData();
+        body.append('file', file);
+
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body,
+        });
+
+        if (!uploadRes.ok) {
+          console.error('Upload failed');
+
+          // fallback: keep base64 so UI still shows something
+          setSceneImages((prev) => ({
+            ...prev,
+            [sceneIndex]: result.image,
+          }));
+
+          return;
+        }
+
+        const uploadData = await uploadRes.json();
+
+        // ✅ store URL directly (NOT base64 anymore)
+        setSceneImages((prev) => ({
+          ...prev,
+          [sceneIndex]: uploadData.url,
+        }));
       }
     } catch (err) {
       console.error('generate-single failed', err);
@@ -168,6 +203,63 @@ export default function StoryboardPreviewModal({
     bg: 'rgba(107,114,128,0.15)',
   };
 
+  const handleSaveAll = async () => {
+    try {
+      const uploadedImages: Record<number, string> = {};
+
+      // upload only base64 ones
+      for (const [indexStr, value] of Object.entries(sceneImages)) {
+        const index = Number(indexStr);
+
+        if (!value) continue;
+
+        // already uploaded → keep
+        if (value.startsWith('http')) {
+          uploadedImages[index] = value;
+          continue;
+        }
+
+        // convert base64 → file
+        const blob = await fetch(`data:image/png;base64,${value}`).then((r) => r.blob());
+
+        const file = new File([blob], `scene-${index}.png`, {
+          type: 'image/png',
+        });
+
+        const body = new FormData();
+        body.append('file', file);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body,
+        });
+
+        if (!res.ok) throw new Error(`Upload failed for scene ${index}`);
+
+        const data = await res.json();
+        uploadedImages[index] = data.url;
+      }
+
+      // 🔥 FINAL OBJECT
+      const finalPayload = {
+        concept: data.concept,
+        globalStyle: data.globalStyle,
+        structure: data.structure,
+        scenes: scenes.map((s, i) => ({
+          ...s,
+          image: uploadedImages[i] || null,
+        })),
+      };
+
+      console.log('FINAL SAVE OBJECT:', finalPayload);
+
+      // 👉 optional: send to your DB
+      // await fetch('/api/save-storyboard', { method: 'POST', body: JSON.stringify(finalPayload) })
+    } catch (err) {
+      console.error('Save all failed:', err);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -233,7 +325,7 @@ export default function StoryboardPreviewModal({
                 whiteSpace: 'nowrap',
                 fontWeight: 500,
               }}>
-              {data.structure.type} · {totalDuration}s
+              {data.structure} · {totalDuration}s
             </span>
 
             <span key="dot-2" style={{ color: 'rgba(34,197,94,0.4)', fontSize: 10, lineHeight: 1 }}>
@@ -413,8 +505,10 @@ export default function StoryboardPreviewModal({
               };
               const isActive = i === activeScene;
               return (
-                <button
+                <div
                   key={s.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setActiveScene(i)}
                   style={{
                     flex: 1,
@@ -469,7 +563,9 @@ export default function StoryboardPreviewModal({
                     {/* Generated image */}
                     {sceneImages[i] ?
                       <img
-                        src={`data:image/png;base64,${sceneImages[i]}`}
+                        src={
+                          sceneImages[i].startsWith('http') ? sceneImages[i] : `data:image/png;base64,${sceneImages[i]}`
+                        }
                         alt={`Scene ${i + 1}`}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
                       />
@@ -547,7 +643,7 @@ export default function StoryboardPreviewModal({
                     }}>
                     {cfg.label}
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -614,9 +710,6 @@ export default function StoryboardPreviewModal({
                   <Tag icon="⏱" label={`${scene.startTime}s → ${scene.endTime}s`} />
                   <Tag icon="🎭" label={scene.emotion} color={purposeCfg.color} />
                 </div>
-                <button className="px-4 py-2 rounded-full text-sm font-medium text-gray-800 bg-gradient-to-r from-green-100 to-green-200 border border-sky-300 shadow-sm hover:from-green-200 hover:to-green-300 hover:border-sky-400 active:scale-95 transition-all duration-200">
-                  Save
-                </button>
               </div>
             </div>
 
