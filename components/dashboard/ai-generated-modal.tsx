@@ -85,26 +85,25 @@ export default function StoryboardPreviewModal({
     console.log(`Fetching scene image for planId: ${planId}`);
     try {
       const response = await fetch(`/api/ai/scene/${planId}`);
-      
+
       if (!response.ok) {
-        throw new Error("Failed to fetch posts")
+        throw new Error('Failed to fetch posts');
       }
 
-      const data = await response.json()
-      
+      const data = await response.json();
 
-      console.log("Scene image data:", data);
-      const tempObj : any = {}
-      
+      console.log('Scene image data:', data);
+      const tempObj: any = {};
+
       data.forEach((scene: any, index: number) => {
-        tempObj[index] = scene.scene.image
-      })
-      
-      setSceneImages(tempObj)
+        tempObj[index] = scene.scene.image;
+      });
+
+      setSceneImages(tempObj);
     } catch (err) {
       console.error('Failed to fetch scene image:', err);
     }
-  }
+  };
 
   const toggleTag = (key: string) =>
     setExpandedTags((prev) => {
@@ -526,42 +525,42 @@ export default function StoryboardPreviewModal({
           }}>
           {/* ── SCENE STRIP ────────────────────────────────────────────── */}
           {/* Generate All row */}
-          
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6}}>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: '#4D8A63',
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-              }}>
-              Scenes
-            </span>
-            <button
-              onClick={generateAll}
-              disabled={isGeneratingAll}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 12,
-                fontWeight: 600,
-                padding: '5px 14px',
-                borderRadius: 20,
-                background: isGeneratingAll ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.12)',
-                border: '1.5px solid rgba(34,197,94,0.35)',
-                color: isGeneratingAll ? '#86BFAA' : '#166534',
-                cursor: isGeneratingAll ? 'not-allowed' : 'pointer',
-                transition: 'all 0.18s',
-              }}>
-              {isGeneratingAll ?
-                <>
-                  <Spinner size={12} color="#86BFAA" /> Generating...
-                </>
-              : <>✦ Generate All Images</>}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: '#4D8A63',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                }}>
+                Scenes
+              </span>
+              <button
+                onClick={generateAll}
+                disabled={isGeneratingAll}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: '5px 14px',
+                  borderRadius: 20,
+                  background: isGeneratingAll ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.12)',
+                  border: '1.5px solid rgba(34,197,94,0.35)',
+                  color: isGeneratingAll ? '#86BFAA' : '#166534',
+                  cursor: isGeneratingAll ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.18s',
+                }}>
+                {isGeneratingAll ?
+                  <>
+                    <Spinner size={12} color="#86BFAA" /> Generating...
+                  </>
+                : <>✦ Generate All Images</>}
+              </button>
             </div>
 
             <button
@@ -676,21 +675,20 @@ export default function StoryboardPreviewModal({
                     }
 
                     {/* Timecode */}
-                    {s.headline ? (
+                    {s.headline ?
                       <div
-                      style={{
-                        position: 'absolute',
-                        bottom: 4,
-                        right: 6,
-                        fontSize: 9,
-                        color: sceneImages[i] ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.3)',
-                        fontFamily: 'monospace',
-                        zIndex: 1,
-                      }}>
-                      {s.sceneNumber}
-                    </div>
-                    ) : (
-                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 4,
+                          right: 6,
+                          fontSize: 9,
+                          color: sceneImages[i] ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.3)',
+                          fontFamily: 'monospace',
+                          zIndex: 1,
+                        }}>
+                        {s.sceneNumber}
+                      </div>
+                    : <div
                         style={{
                           position: 'absolute',
                           bottom: 4,
@@ -702,8 +700,7 @@ export default function StoryboardPreviewModal({
                         }}>
                         {s.startTime}s–{s.endTime}s
                       </div>
-                    )}
-                    
+                    }
 
                     {/* Generate Single button — bottom-left of preview box */}
                     {!loadingScenes.has(i) && (
@@ -816,7 +813,10 @@ export default function StoryboardPreviewModal({
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
                 <div className="flex-1">
-                  <Tag icon="⏱" label={scene.startTime ?`${scene.startTime}s → ${scene.endTime}s` : `${scene.sceneNumber} Scene`} />
+                  <Tag
+                    icon="⏱"
+                    label={scene.startTime ? `${scene.startTime}s → ${scene.endTime}s` : `${scene.sceneNumber} Scene`}
+                  />
                   <Tag icon="🎭" label={scene.emotion} color={purposeCfg.color} />
                 </div>
               </div>
@@ -845,25 +845,34 @@ export default function StoryboardPreviewModal({
                 Production Notes
               </p>
 
-              <DetailRow icon="🎥" label={scene.camera ? 'Camera' : 'Visual Focus'} value={scene.camera ? scene.camera as string : scene.visualFocus as string} onChange={(v) => updateScene(scene.camera ? 'camera' : 'visualFocus', v)} />
-              <DetailRow icon="🎬" label={scene.motion ? 'Motion' : 'Text overlay'} value={scene.motion ? scene.motion as string : scene.textOverlay as string} onChange={(v) => updateScene(scene.motion ? 'motion' : 'textOverlay', v)} />
+              <DetailRow
+                icon="🎥"
+                label={scene.camera ? 'Camera' : 'Visual Focus'}
+                value={scene.camera ? (scene.camera as string) : (scene.visualFocus as string)}
+                onChange={(v) => updateScene(scene.camera ? 'camera' : 'visualFocus', v)}
+              />
+              <DetailRow
+                icon="🎬"
+                label={scene.motion ? 'Motion' : 'Text overlay'}
+                value={scene.motion ? (scene.motion as string) : (scene.textOverlay as string)}
+                onChange={(v) => updateScene(scene.motion ? 'motion' : 'textOverlay', v)}
+              />
               <DetailRow icon="💭" label="Emotion" value={scene.emotion} onChange={(v) => updateScene('emotion', v)} />
-              
-              {scene.soundEffect ? (
+
+              {scene.soundEffect ?
                 <DetailRow
                   icon="🔊"
                   label="Sound"
                   value={scene.soundEffect.name}
                   onChange={(v) => updateScene('soundEffect', v)}
                 />
-              ) : (
-                <DetailRow
+              : <DetailRow
                   icon="🌟"
                   label="Filter"
-                  value={scene.filter as string || ''}
+                  value={(scene.filter as string) || ''}
                   onChange={(v) => updateScene('filter', v)}
                 />
-              )}
+              }
 
               {/* Audio preview — shown only when a URL is available */}
               {scene.soundEffect && (

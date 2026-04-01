@@ -4,35 +4,31 @@ export const runtime = 'nodejs';
 import { getInstagramTrending } from '@/lib/apify';
 import { auth } from '@/lib/auth';
 import { getTopicUrls } from '@/lib/gemini';
-// import redis from '@/lib/redis';
+import redis from '@/lib/redis';
 
 export async function POST(req: Request) {
   try {
-
     const session = await auth.api.getSession({
-        headers: req.headers // This is now automatically populated with the cookies
+      headers: req.headers,
     });
 
-    if (!session || !session.user) {
-        throw { message: 'Unauthorized', status: 401 };
+    if (!session || !session.user) throw { message: 'Unauthorized', status: 401 };
+
+    const cacheKey = `trending_instagram_${session.user.id}`;
+
+    // 1️⃣ Check Redis cache first
+    const cachedPosts = await redis.get(cacheKey);
+    if (cachedPosts) {
+      console.log('Returning cached trending posts for user:', session.user.id);
+      return Response.json(JSON.parse(cachedPosts));
     }
 
-    // const cachedPosts = await redis.get(`trending_instagram_${session.user.id}`);
-
-    // if (cachedPosts) {
-    //   console.log('Returning cached trending posts for user:', session.user.id);
-    //   return Response.json(JSON.parse(cachedPosts));
-    // }
-
+    // 2️⃣ No cache, fetch fresh
     const interests = session.user.interests || [];
-    
-    // 1️⃣ AI → topic URLs
-    const urls = await getTopicUrls(interests || []);
+    const urls = await getTopicUrls(interests);
 
-    // 2️⃣ Apify → scrape trending posts
     const items = await getInstagramTrending(urls);
 
-    // 3️⃣ Map to frontend-ready structure
     const trendingPosts = items.map((item: any) => ({
       caption: item.caption,
       ownerFullName: item.ownerFullName,
@@ -45,7 +41,8 @@ export async function POST(req: Request) {
       displayUrl: item.displayUrl,
     }));
 
-    // await redis.set(`trending_instagram_${session.user.id}`, JSON.stringify(trendingPosts), 'EX', 60 * 60 * 24);
+    // 3️⃣ Store in Redis for 24 hours
+    await redis.set(cacheKey, JSON.stringify(trendingPosts), 'EX', 60 * 60 * 24); // 24h expiry
 
     return Response.json(trendingPosts);
   } catch (error) {

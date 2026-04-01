@@ -1,17 +1,21 @@
-// app/api/trending-tweets/route.ts
 export const runtime = 'nodejs';
 
 import { auth } from '@/lib/auth';
 import { getTwitterTrending } from '@/lib/apify';
+import redis from '@/lib/redis';
 
 export async function GET(req: Request) {
   try {
     const session = await auth.api.getSession({ headers: req.headers });
     if (!session || !session.user) throw { message: 'Unauthorized', status: 401 };
 
+    const cacheKey = `trending_tweets_${session.user.id}`;
+    const cached = await redis.get(cacheKey);
+    if (cached) return Response.json(JSON.parse(cached));
+
     const interests = session.user.interests || [];
     const searchTerms = interests.map(
-      (topic: string) => `(${topic} OR ai OR developer OR coding OR technology) (min_faves:200) -is:retweet`
+      (topic: string) => `(${topic} OR ai OR developer OR coding OR technology) (min_faves:200) -is:retweet`,
     );
 
     const items = await getTwitterTrending({
@@ -41,9 +45,16 @@ export async function GET(req: Request) {
       },
     }));
 
+    await redis.set(cacheKey, JSON.stringify(trendingTweets), 'EX', 60 * 60 * 24); // 24h
+
     return Response.json(trendingTweets);
   } catch (err) {
     console.error(err);
+
+    // Optional: fallback to cache if API fails
+    // const cached = await redis.get(`trending_tweets_${session.user.id}`);
+    // if (cached) return Response.json(JSON.parse(cached));
+
     return Response.json({ error: 'Failed to fetch trending tweets' }, { status: 500 });
   }
 }

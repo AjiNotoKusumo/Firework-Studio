@@ -1,42 +1,50 @@
 import { auth } from '@/lib/auth';
-import { headers } from "next/headers";
+import { getTwitterTrending } from '@/lib/apify';
+import redis from '@/lib/redis';
 
 export async function GET(req: Request) {
   try {
+    const session = await auth.api.getSession({ headers: req.headers });
+    if (!session || !session.user) throw { message: 'Unauthorized', status: 401 };
 
-    const session = await auth.api.getSession({
-        headers: req.headers // This is now automatically populated with the cookies
-    });
-
-    if (!session || !session.user) {
-        throw { message: 'Unauthorized', status: 401 };
-    }
+    const cacheKey = `twitter_hashtags_${session.user.id}`;
+    const cached = await redis.get(cacheKey);
+    if (cached) return Response.json(JSON.parse(cached));
 
     const interests = session.user.interests || [];
+    const searchTerms = interests.map((topic: string) => `(${topic}) (min_faves:200) -is:retweet`);
 
-    const { accessToken } = await auth.api.getAccessToken({
-        body: { providerId: "twitter" },
-        headers: await headers() // Pass current request headers for session context
+    const items = await getTwitterTrending({
+      maxItems: 50,
+      searchTerms,
+      sort: 'Top',
+      tweetLanguage: 'en',
     });
 
-    if (!accessToken) {
-        throw { message: 'No access token found for Twitter', status: 403 };
-    }
-
-    const response = await fetch(`https://api.x.com/2/trends/by/woeid/23424846?trend.fields=tweet_count,trend_name&max_trends=50`, {
-        headers: {
-            Authorization: `Bearer ${process.env.TWITTER_BEARER_TOKEN}`,
-        },
+    const hashtags: Record<string, number> = {};
+    items.forEach((tweet: any) => {
+      const tags = tweet.text.match(/#\w+/g) || [];
+      tags.forEach((tag: string) => {
+        const key = tag.replace(/^#/, '');
+        hashtags[key] = (hashtags[key] || 0) + 1;
+      });
     });
 
-    const postResult = await response.json();
+    const topHashtags = Object.entries(hashtags)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 20);
 
-    console.log("Twitter API search result:", postResult);
+    await redis.set(cacheKey, JSON.stringify({ hashtags: topHashtags }), 'EX', 60 * 60 * 24);
 
-    return Response.json(postResult);
-  } catch (error) {
-    console.error(error);
-    return Response.json({ error: 'Failed to fetch trending posts' }, { status: 500 });
+    return Response.json({ hashtags: topHashtags });
+  } catch (err) {
+    console.error('Twitter hashtags error:', err);
+
+    // Optional fallback
+    // const cached = await redis.get(`twitter_hashtags_${session.user.id}`);
+    // if (cached) return Response.json(JSON.parse(cached));
+
+    return Response.json({ error: 'Failed to fetch Twitter hashtags' }, { status: 500 });
   }
 }
-

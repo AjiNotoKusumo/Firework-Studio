@@ -1,5 +1,4 @@
 import { ApifyClient } from 'apify-client';
-import fetch from 'node-fetch';
 
 interface TwitterTrendingInput {
   maxItems: number;
@@ -15,7 +14,7 @@ const apify = new ApifyClient({
 export async function getInstagramTrending(urls: string[]) {
   const run = await apify.actor('apify/instagram-topic-scraper').call({
     directUrls: urls,
-    resultsLimit: 1,
+    resultsLimit: 50,
     depthOfSubtopics: 1,
   });
 
@@ -46,7 +45,6 @@ export async function getInstagramHashtag(interests: string[]) {
   return datasets;
 }
 
-
 export async function getTwitterTrending(input: TwitterTrendingInput) {
   const { maxItems, searchTerms, sort = 'Latest', tweetLanguage = 'en' } = input;
 
@@ -59,7 +57,7 @@ export async function getTwitterTrending(input: TwitterTrendingInput) {
   };
 
   try {
-    const res = await apify.actor("apidojo/tweet-scraper").call(payload);
+    const res = await apify.actor('apidojo/tweet-scraper').call(payload);
 
     const { items } = await apify.dataset(res.defaultDatasetId).listItems();
 
@@ -73,9 +71,8 @@ export async function getTwitterTrending(input: TwitterTrendingInput) {
       username: tweet.author?.userName || tweet.username,
       fullName: tweet.author?.name || tweet.fullName,
       profilePicture: tweet.author?.profilePicture || tweet.profilePicture,
-      media: tweet.extendedEntities?.media?.length
-        ? tweet.extendedEntities.media.map((m: any) => m.media_url_https)
-        : [],
+      media:
+        tweet.extendedEntities?.media?.length ? tweet.extendedEntities.media.map((m: any) => m.media_url_https) : [],
       timestamp: tweet.createdAt,
       likesCount: tweet.favorite_count || tweet.likeCount || 0,
       retweetsCount: tweet.retweet_count || tweet.retweetCount || 0,
