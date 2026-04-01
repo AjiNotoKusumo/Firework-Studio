@@ -83,18 +83,10 @@ export default class PostModel {
     }   
 
     static async updatePost(postId: string, data: any) {
-        const { userId, caption, hashtags, platform, status, postType, scheduledAt } = data;
+        const { userId, caption, hashtags, platform, status, postType, scheduledAt, qstashId, twitterId, instagramId } = data;
 
         if (!postId) {
             throw { message: "postId is required to update a post", status: 400 };
-        }
-
-        if (!userId) {
-            throw { message: "userId is required to update a post", status: 400 };
-        }
-
-        if (!platform) {
-            throw { message: "platform is required to update a post", status: 400 };
         }
 
         console.log("Updating post with data:", postId);
@@ -117,6 +109,9 @@ export default class PostModel {
                 status,
                 postType,
                 scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+                qstashId: qstashId || null,
+                twitterId: twitterId || null,
+                instagramId: instagramId || null,
                 media: {
                     deleteMany: {}, // This will remove existing media associations
                     create: data.images ? data.images.map((url: string, index: number) => ({ url, order: index + 1 })) : [], // Add new media associations
@@ -251,5 +246,48 @@ export default class PostModel {
             orderBy: { sceneNumber: "asc" }
         });
         return scenes;
+    }
+
+    static async getPlanningByPost(postId: string) {
+        if (!postId) {
+            throw { message: "postId is required to get planning data", status: 400 };
+        }
+
+        const planning = await prisma.planning.findMany({
+            where: { postId },
+            include: {
+                scenes: {
+                    orderBy: { sceneNumber: "asc" }
+                }
+            }
+        });
+        return planning;
+    }
+
+    static async editPlanning(planId: string, planningData: any) {
+        if (!planId) {
+            throw { message: "planId is required to edit planning data", status: 400 };
+        }
+
+        const {postId, concept, globalStyle, structure, scenes} = planningData;
+
+        const updatedPlanning = await prisma.planning.update({
+            where: { id: planId },
+            data: {
+                postId,
+                concept,
+                globalStyle,
+                structure,
+                scenes: {
+                    deleteMany: {},
+                    create: scenes.map((scene: any) => ({
+                        sceneNumber: scene.sceneNumber,
+                        scene: scene
+                    })),
+                },
+            }
+        });
+
+        return updatedPlanning;
     }
 }

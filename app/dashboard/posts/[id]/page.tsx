@@ -42,6 +42,25 @@ export default function ViewPostPage() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
   const { data: session, isPending } = useSession();
+  const [metrics, setMetrics] = useState<any>(null)
+  const [isPublished, setIsPublished] = useState(false)
+  
+  const fetchMetrics = async (metricsId: string) => {
+    try {
+      const response = await fetch(`/api/metrics/twitter/${metricsId}`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch metrics")
+      }
+
+      const data = await response.json()
+      console.log("Fetched metrics:", data)
+
+      setMetrics(data)
+
+    } catch (error) {
+      console.error("Failed to fetch metrics:", error)
+    }
+  } 
 
   const fetchPost = async () => {
     try {
@@ -51,6 +70,11 @@ export default function ViewPostPage() {
       }
       const data = await response.json()
       setPost(data)
+
+      if (data.status === "published") {
+        setIsPublished(true)
+        fetchMetrics(data.twitterId)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load post")
     } finally {
@@ -106,7 +130,6 @@ export default function ViewPostPage() {
     
   }
 
-
   useEffect(() => {
     if (params.id) {
       fetchPost()
@@ -139,7 +162,7 @@ export default function ViewPostPage() {
     )
   }
 
-  const isPublished = post.status === "published"
+  
 
   return (
     <div className="p-6 lg:p-8">
@@ -238,7 +261,7 @@ export default function ViewPostPage() {
             </div>
 
             {/* Schedule Info */}
-            {post.scheduledAt && (
+            {post.scheduledAt && post.status === "scheduled" && (
               <div className="flex items-center gap-2 py-4 border-t border-border">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
@@ -252,7 +275,7 @@ export default function ViewPostPage() {
               </div>
             )}
 
-            {post.scheduledAt && Date.now() >= new Date(post.scheduledAt).getTime() && (
+            {post.scheduledAt && Date.now() >= new Date(post.scheduledAt).getTime() && post.status === "published" && (
               <div className="flex items-center gap-2 py-4 border-t border-border">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
@@ -286,7 +309,7 @@ export default function ViewPostPage() {
           </div>
 
           {/* Metrics Card - Only for Published Posts */}
-          {isPublished && post.metrics && (
+          {post.status === "published" && metrics && (
             <div className="rounded-[20px] bg-card p-6 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
               <div className="flex items-center gap-2 mb-6">
                 <TrendingUp className="h-5 w-5 text-primary" />
@@ -296,17 +319,17 @@ export default function ViewPostPage() {
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="rounded-[16px] bg-secondary p-4 text-center">
                   <Heart className="h-5 w-5 mx-auto text-red-500 mb-2" />
-                  <p className="text-xl font-bold text-foreground">{formatNumber(post.metrics.likes)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.public_metrics?.like_count)}</p>
                   <p className="text-xs text-muted-foreground">Likes</p>
                 </div>
                 <div className="rounded-[16px] bg-secondary p-4 text-center">
                   <MessageCircle className="h-5 w-5 mx-auto text-[#0EA5E9] mb-2" />
-                  <p className="text-xl font-bold text-foreground">{formatNumber(post.metrics.comments)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.public_metrics?.reply_count)}</p>
                   <p className="text-xs text-muted-foreground">Comments</p>
                 </div>
                 <div className="rounded-[16px] bg-secondary p-4 text-center">
                   <Share2 className="h-5 w-5 mx-auto text-[#F59E0B] mb-2" />
-                  <p className="text-xl font-bold text-foreground">{formatNumber(post.metrics.shares)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.public_metrics?.retweet_count)}</p>
                   <p className="text-xs text-muted-foreground">Shares</p>
                 </div>
               </div>
@@ -314,17 +337,17 @@ export default function ViewPostPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="rounded-[16px] bg-[#E8F5E9] p-4 text-center">
                   <Eye className="h-5 w-5 mx-auto text-primary mb-2" />
-                  <p className="text-xl font-bold text-foreground">{formatNumber(post.metrics.views)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.public_metrics?.impression_count)}</p>
                   <p className="text-xs text-muted-foreground">Views</p>
                 </div>
                 <div className="rounded-[16px] bg-[#CFEFFF]/50 p-4 text-center">
                   <Users className="h-5 w-5 mx-auto text-[#0EA5E9] mb-2" />
-                  <p className="text-xl font-bold text-foreground">{formatNumber(post.metrics.reach)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.public_metrics?.bookmark_count)}</p>
                   <p className="text-xs text-muted-foreground">Reach</p>
                 </div>
                 <div className="rounded-[16px] bg-[#FFD54F]/20 p-4 text-center">
                   <TrendingUp className="h-5 w-5 mx-auto text-[#F59E0B] mb-2" />
-                  <p className="text-xl font-bold text-foreground">{post.metrics.engagement}%</p>
+                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.public_metrics?.quote_count)}</p>
                   <p className="text-xs text-muted-foreground">Engagement</p>
                 </div>
               </div>

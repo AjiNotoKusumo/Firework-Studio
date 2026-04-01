@@ -7,23 +7,22 @@ import dayGridPlugin from "@fullcalendar/daygrid"
 import interactionPlugin from "@fullcalendar/interaction"
 import { type Post } from "@/lib/posts-data"
 import { Spinner } from "@/components/ui/spinner"
+import Swal from "sweetalert2"
 
 export default function CalendarPage() {
   const router = useRouter()
-  const [posts, setPosts] = useState<Post[]>([])
+  const [posts, setPosts] = useState<any[]>([])
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    setMounted(true)
-    
-    const fetchPosts = async () => {
+  const fetchPosts = async () => {
       try {
         const response = await fetch("/api/posts")
         if (response.ok) {
           const data = await response.json()
           // Filter to only scheduled and published posts with dates
           const postsWithDates = data.filter((p: Post) => p.scheduledAt || p.publishedDate)
+          console.log("Fetched posts for calendar:", postsWithDates)
           setPosts(postsWithDates)
         }
       } catch (error) {
@@ -33,15 +32,83 @@ export default function CalendarPage() {
       }
     }
 
+
+  useEffect(() => {
+    setMounted(true)
+
     fetchPosts()
   }, [])
 
-  const handleEventDrop = (info: any) => {
-  // Update event in your state or send to API
-      console.log(info.event.title + " was dropped on " + info.event.start.toISOString());
-      if (!window.confirm("Change post schedule to " + info.event.start + "?")) {
-          info.revert(); // Revert the event to its original position
+  const handleEventDrop = async (info: any) => {
+    try {
+      const newDate = info.event.start.toLocaleDateString('en-CA');
+
+      const post = posts.find(p => p.id === info.event.id);
+
+      const { value: selectedTime } = await Swal.fire({
+        title: 'Update Posting Time',
+        icon: 'info',
+        background: '#EDF5EB',
+        html: `
+          <div style="text-align: center;">
+            <p>New Date: <b>${newDate}</b></p>
+            <label for="swal-time" style="font-size: 12px; color: gray;">Pick Hour & Minute</label>
+            <br/>
+            <input type="time" id="swal-time" class="swal2-input" value="12:00">
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Reschedule',
+        focusConfirm: false,
+        preConfirm: () => {
+          const timeInput = document.getElementById('swal-time') as HTMLInputElement;
+  
+          if (!timeInput || !timeInput.value) {
+            Swal.showValidationMessage('Please select a time');
+            return null;
+          }
+          
+          return timeInput.value;
+        }
+      });
+
+      if (selectedTime) {
+        const finalDateTime = new Date(`${newDate}T${selectedTime}`);
+        const scheduledAtUTC = finalDateTime.toISOString();
+
+        const response = await fetch('/api/scheduler', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            postId: post?.id,
+            caption: post?.caption,
+            images: post?.media?.map((m: any) => m.url) || [],
+            scheduledAt: scheduledAtUTC,
+            postType: post?.postType,
+            platform: post?.platform,
+            userId: post?.userId,
+            hashtags: post?.hashtags,
+          }),
+        });
+
+        if (!response.ok) throw new Error('API failed');
+
+        Swal.fire({
+          title: 'Post Rescheduled',
+          text: `New scheduled time: ${finalDateTime.toLocaleString()}`,
+          icon: 'success',
+          background: '#EDF5EB',
+        });
+        
+        fetchPosts()
+      } else {
+        info.revert() // Revert the event position if time selection was cancelled or invalid
       }
+    } catch (error) {
+      console.error("Failed to update post date:", error)
+      info.revert() // Revert the event position on error
+    }
+  
   };
 
 

@@ -97,50 +97,27 @@ export default function CreatePostPage() {
   const [selectedPost, setSelectedPost] = useState<TrendingPost | null>(null);
   const [isTrendingModalOpen, setIsTrendingModalOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
-  const [ideas] = useState<RedzoneIdea[]>(redzoneIdeasData);
-  const [selectedIdea, setSelectedIdea] = useState<RedzoneIdea | null>(null);
+  const [ideas, setIdeas] = useState<any[]>([]);
+  const [selectedIdea, setSelectedIdea] = useState<any | null>(null);
   const [savedPosts, setSavedPosts] = useState<any[]>([]);
   const [postId, setPostId] = useState<any>('');
   const router = useRouter();
-  const trendingPosts: TrendingPost[] = [
-    {
-      id: '1',
-      imageUrl: 'https://images.unsplash.com/photo-1492724441997-5dc865305da7',
-      caption: 'Viral hook + clean aesthetic 🔥',
-      likes: 12000,
-      comments: 800,
-      shares: 320,
-      status: 'trending',
-      platform: 'instagram',
-      author: { name: 'Creator A' },
-      url: 'https://example.com/post/1',
-    },
-    {
-      id: '2',
-      imageUrl:
-        'https://images.unsplash.com/photo-1774246651781-d0cf98fb2fd9?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0',
-      caption: 'Minimal content wins attention',
-      likes: 8700,
-      comments: 500,
-      shares: 210,
-      status: 'growing',
-      platform: 'instagram',
-      author: { name: 'Creator B' },
-      url: 'https://example.com/post/2',
-    },
-    {
-      id: '3',
-      imageUrl: 'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2',
-      caption: 'Bold messaging + contrast',
-      likes: 5400,
-      comments: 300,
-      shares: 150,
-      status: 'stable',
-      platform: 'twitter',
-      author: { name: 'Creator C' },
-      url: 'https://example.com/post/3',
-    },
-  ];
+
+  const fetchIdeas = async () => {
+    try {
+      const response = await fetch(`/api/ai/planning/${postId}`)
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch posts")
+      }
+
+      const data = await response.json()
+
+      setIdeas(data)
+    } catch (error) {
+      console.error("Failed to fetch ideas:", error);
+    }
+  }
 
   const createInstance = async () => {
     try {
@@ -282,7 +259,7 @@ export default function CreatePostPage() {
               {/* Image */}
               <div className="relative w-full aspect-square overflow-hidden">
                 <img
-                  src={idea.imageUrl}
+                  src={idea.scenes?.[0].scene.image || 'https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg'}
                   alt="idea"
                   className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
@@ -297,10 +274,10 @@ export default function CreatePostPage() {
                   <span className="text-xs font-medium text-pink-500">AI Idea</span>
                 </div>
 
-                <h3 className="text-sm font-semibold text-foreground line-clamp-2">{idea.storyboard.concept.hook}</h3>
+                <h3 className="text-sm font-semibold text-foreground line-clamp-2">{idea.concept.hook}</h3>
 
                 <p className="text-xs text-muted-foreground mt-2">
-                  {idea.storyboard.scenes.length} scenes • {idea.storyboard.structure.type}
+                  {idea.scenes.length} scenes • {idea.structure}
                 </p>
               </div>
             </button>
@@ -372,13 +349,21 @@ export default function CreatePostPage() {
           console.log('AI INPUT:', data);
         }}
         postId={postId}
+        fetchIdeas={fetchIdeas}
       />
 
       {/* Storyboard Preview Modal */}
       <StoryboardPreviewModal
         open={!!selectedIdea}
         onOpenChange={(open) => !open && setSelectedIdea(null)}
-        storyboardData={selectedIdea?.storyboard ?? null}
+        storyboardData={{
+          concept: selectedIdea?.concept,
+          globalStyle: selectedIdea?.globalStyle,
+          structure: { type: selectedIdea?.structure },
+          scenes: selectedIdea?.scenes.map((s: any) => s.scene),
+        }}
+        planId={selectedIdea?.id}
+        postId={postId}
       />
     </div>
   );

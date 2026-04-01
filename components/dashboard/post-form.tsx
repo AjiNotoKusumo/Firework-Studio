@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { type Post, sampleImages } from '@/lib/posts-data';
 import Swal from 'sweetalert2';
+import { useSession } from '@/lib/auth-client';
 
 interface PostFormProps {
   initialData?: Post;
@@ -53,6 +54,8 @@ export function PostForm({ initialData, mode, formData, setFormData, postId }: P
   const [activeDropdown, setActiveDropdown] = useState<'mention' | 'hashtag' | 'link' | 'location' | null>(null);
   const [dropdownFilter, setDropdownFilter] = useState('');
   const [linkInput, setLinkInput] = useState('');
+
+  const { data: session, isPending } = useSession();
 
   const isScheduled = !!formData.scheduledAt;
 
@@ -149,6 +152,18 @@ export function PostForm({ initialData, mode, formData, setFormData, postId }: P
 
       if (mode === 'create') {
         localStorage.removeItem('creatingPostId');
+      }
+
+      if(isScheduled) {
+        const response = await fetch(`/api/scheduler`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...payload, 
+            userId: session?.user.id,
+            postId: mode === 'edit' && initialData ? initialData.id : postId
+          }),
+        });
       }
 
       Swal.fire({

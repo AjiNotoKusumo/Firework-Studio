@@ -5,69 +5,6 @@ import { Sparkles } from 'lucide-react';
 import StoryboardPreviewModal from '@/components/dashboard/ai-generated-modal';
 
 // ---------------- MOCK DATA ----------------
-const redzoneIdeasData = [
-  {
-    id: 'idea-1',
-    imageUrl: 'https://images.unsplash.com/photo-1492724441997-5dc865305da7?w=400&h=400&fit=crop',
-    storyboard: {
-      concept: {
-        title: 'Stop Ruining Your Morning Hydration',
-        hook: "You're drinking water wrong every morning",
-      },
-      globalStyle: {
-        visualStyle: 'High-energy, bold captions',
-        colorPalette: 'Warm tones, high contrast',
-      },
-      structure: { type: 'video' as const },
-      scenes: [
-        {
-          id: 1,
-          purpose: 'hook',
-          description: 'Close-up intense stare holding water',
-          startTime: 0,
-          endTime: 3,
-          camera: 'Close-up',
-          motion: 'Static',
-          emotion: 'Urgency',
-          soundEffect: {
-            name: 'Whoosh',
-            url: 'https://www.myinstants.com/en/instant/ih-takotnyee-50339/?utm_source=copy&utm_medium=share',
-          },
-        },
-        {
-          id: 2,
-          purpose: 'build',
-          description: 'Quick cuts showing wrong habits',
-          startTime: 3,
-          endTime: 7,
-          camera: 'Fast cuts',
-          motion: 'Dynamic',
-          emotion: 'Informative',
-          soundEffect: {
-            name: 'Pop',
-            url: 'https://www.myinstants.com/en/instant/pop-12345/?utm_source=copy&utm_medium=share',
-          },
-        },
-        {
-          id: 3,
-          purpose: 'payoff',
-          description: 'Show correct method clearly',
-          startTime: 7,
-          endTime: 12,
-          camera: 'Medium shot',
-          motion: 'Smooth',
-          emotion: 'Relief',
-          soundEffect: {
-            name: 'Chime',
-            url: 'https://soundcloud.com/user-937207437/sets/fahhh?utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing',
-          },
-        },
-      ],
-    },
-  },
-];
-
-type RedzoneIdea = (typeof redzoneIdeasData)[number];
 
 // ---------------- PAGE ----------------
 export default function RedzonePage() {
@@ -114,7 +51,7 @@ export default function RedzonePage() {
             {/* Image */}
             <div className="relative h-48 w-full overflow-hidden">
               <img
-                src={idea.scenes?.[0].scene.image || 'https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg'}
+                src={idea.scenes?.find((s: any) => s.scene?.image)?.scene.image || 'https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg'}
                 alt="idea"
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
@@ -164,6 +101,7 @@ export default function RedzonePage() {
           scenes: selectedIdea?.scenes.map((s: any) => s.scene),
         }}
         planId={selectedIdea?.id}
+        fetchIdeas={fetchIdeas}
       />
     </div>
   );

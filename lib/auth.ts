@@ -17,7 +17,8 @@ export const auth = betterAuth({
                 "users.read", 
                 "tweet.read", 
                 "tweet.write", 
-                "offline.access"
+                "offline.access",
+                "media.write"
             ], 
             mapProfileToUser: async (profile) => {
                 return {

@@ -61,13 +61,15 @@ export default function StoryboardPreviewModal({
   onOpenChange,
   storyboardData,
   postId,
-  planId
+  planId,
+  fetchIdeas
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   storyboardData: any | null;
   postId?: string;
   planId?: string;
+  fetchIdeas?: () => void;
 }) {
   const [activeScene, setActiveScene] = useState<number>(0);
   const [scenes, setScenes] = useState<Scene[]>([]);
@@ -294,12 +296,29 @@ export default function StoryboardPreviewModal({
         })),
       };
 
-      console.log('FINAL SAVE OBJECT:', finalPayload);
+      if(!planId) {
+        const res = await fetch('/api/ai/planning', {
+          method: 'POST',
+          body: JSON.stringify(finalPayload)
+        });
 
-      const res = await fetch('/api/ai/planning', {
-        method: 'POST',
-        body: JSON.stringify(finalPayload)
-      });
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Failed to save planning');
+        }
+      } else {
+        const res = await fetch('/api/ai/planning', {
+          method: 'PATCH',
+          body: JSON.stringify({ finalPayload, planId })
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Failed to save planning');
+        }
+      }
+
+      fetchIdeas?.();
     } catch (err) {
       console.error('Save all failed:', err);
     } finally {
@@ -474,7 +493,7 @@ export default function StoryboardPreviewModal({
           <div style={{ marginTop: 14, display: 'flex', gap: 3, height: 5, borderRadius: 6, overflow: 'hidden' }}>
             {data.scenes.map((s, i) => {
               const cfg = PURPOSE_CONFIG[s.purpose] ?? { color: '#6B7280', bg: '', label: '' };
-              const widthPct = s.endTime && s.startTime && totalDuration ? ((s.endTime - s.startTime) / totalDuration) * 100 : 0;
+              const widthPct = s.endTime && totalDuration ? ((s.endTime - (s.startTime || 0)) / totalDuration) * 100 : 0;
               return (
                 <button
                   key={`${s.sceneNumber}-${i}`} // <--- make sure key is unique
@@ -564,7 +583,7 @@ export default function StoryboardPreviewModal({
               }}>
               {isSaving ?
                 <>
-                  <Spinner size={12} color="#86BFAA" /> Generating...
+                  <Spinner size={12} color="#86BFAA" /> Saving...
                 </>
               : <>Save</>}
             </button>

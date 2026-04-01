@@ -7,9 +7,10 @@ import { type Post } from "@/lib/posts-data"
 import { Spinner } from "@/components/ui/spinner"
 import { PostPreview } from "@/components/dashboard/post-preview"
 import Image from 'next/image';
-import { TrendingUp, Flame } from 'lucide-react';
+import { TrendingUp, Flame, Sparkles } from 'lucide-react';
 import AiSuggestModal from "@/components/dashboard/ai-suggest-modal"
 import { TrendingPostModal } from "@/components/dashboard/trending-post-modal"
+import StoryboardPreviewModal from "@/components/dashboard/ai-generated-modal"
 
 interface TrendingPost {
   id: string;
@@ -83,7 +84,10 @@ export default function EditPostPage() {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [isTrendingModalOpen, setIsTrendingModalOpen] = useState(false);
-  
+  const [savedPosts, setSavedPosts] = useState<any[]>([]);
+  const [ideas, setIdeas] = useState<any[]>([]);
+  const [selectedIdea, setSelectedIdea] = useState<any | null>(null);
+
   const [formData, setFormData] = useState<Partial<Post>>({
     images: [],
     caption: '',
@@ -93,6 +97,22 @@ export default function EditPostPage() {
     hashtags: [],
     status: 'draft',
   });
+
+  const fetchIdeas = async () => {
+    try {
+      const response = await fetch(`/api/ai/planning/${params.id}`)
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch posts")
+      }
+
+      const data = await response.json()
+
+      setIdeas(data)
+    } catch (error) {
+      console.error("Failed to fetch ideas:", error);
+    }
+  }
 
   const handleSaveTrending = () => {
     if (!selectedPost) return;
@@ -109,6 +129,23 @@ export default function EditPostPage() {
     setSelectedPost(post);
     setIsTrendingModalOpen(true);
   };
+
+  const fetchSavedPosts = async () => {
+    try {
+      const response = await fetch("/api/posts/trending")
+      if(!response.ok) {
+        throw new Error("Failed to fetch saved posts")
+      }
+
+      const data = await response.json()      
+
+      const postData  = data.data
+
+      setSavedPosts(postData)
+    } catch (error) {
+      console.error("Failed to fetch saved posts:", error)
+    }
+  }
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -140,6 +177,9 @@ export default function EditPostPage() {
     if (params.id) {
       fetchPost()
     }
+
+    fetchSavedPosts()
+    fetchIdeas()
   }, [params.id])
 
   if (loading) {
@@ -186,8 +226,8 @@ export default function EditPostPage() {
         </div>
 
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          {trendingPosts.map((post) => {
-            const status = statusConfig[post.status];
+          {savedPosts.map((post) => {
+            // const status = statusConfig[post.status];
             return (
               <button
                 key={post.id}
@@ -195,27 +235,60 @@ export default function EditPostPage() {
                 className="group flex-shrink-0 w-[160px] rounded-[14px] border border-border bg-card overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-left">
                 <div className="relative w-full aspect-square">
                   <Image
-                    src={post.imageUrl}
-                    alt={post.caption}
+                    src={post.postData.imageUrl}
+                    alt={post.postData.caption}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <span
+                  {/* <span
                     className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold ${status.className}`}>
                     {status.label}
-                  </span>
+                  </span> */}
                 </div>
 
                 <div className="p-2.5">
-                  <p className="text-xs line-clamp-2 mb-1.5">{post.caption}</p>
+                  <p className="text-xs line-clamp-2 mb-1.5">{post.postData.caption}</p>
                   <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <TrendingUp className="h-3 w-3" />
-                    <span>{formatNumber(post.likes)} likes</span>
+                    <span>{formatNumber(post.postData.likes)} likes</span>
                   </div>
                 </div>
               </button>
             );
           })}
+
+          {ideas.map((idea) => (
+            <button
+              key={idea.id}
+              onClick={() => setSelectedIdea(idea)}
+              className="group flex-shrink-0 w-[160px] text-left rounded-[20px] bg-white border border-pink-100 overflow-hidden transition-all hover:scale-[1.02] hover:shadow-xl">
+              {/* Image */}
+              <div className="relative w-full aspect-square overflow-hidden">
+                <img
+                  src={idea.scenes?.[0].scene.image || 'https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg'}
+                  alt="idea"
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+
+                <div className="absolute inset-0 bg-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+
+              {/* Content */}
+              <div className="p-2.5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-pink-500" />
+                  <span className="text-xs font-medium text-pink-500">AI Idea</span>
+                </div>
+
+                <h3 className="text-sm font-semibold text-foreground line-clamp-2">{idea.concept.hook}</h3>
+
+                <p className="text-xs text-muted-foreground mt-2">
+                  {idea.scenes.length} scenes • {idea.structure}
+                </p>
+              </div>
+            </button>
+          ))}
+
           {/* 🤖 AI BUTTON */}
           <button
             className="group relative flex-shrink-0 w-[160px] rounded-[14px] border border-border bg-card overflow-hidden text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
@@ -281,6 +354,20 @@ export default function EditPostPage() {
         onSubmit={(data : any) => {
           console.log('AI INPUT:', data);
         }}
+        postId={params.id as string}
+        fetchIdeas={fetchIdeas}
+      />
+
+      <StoryboardPreviewModal
+        open={!!selectedIdea}
+        onOpenChange={(open) => !open && setSelectedIdea(null)}
+        storyboardData={{
+          concept: selectedIdea?.concept,
+          globalStyle: selectedIdea?.globalStyle,
+          structure: { type: selectedIdea?.structure },
+          scenes: selectedIdea?.scenes.map((s: any) => s.scene),
+        }}
+        planId={selectedIdea?.id}
         postId={params.id as string}
       />
     </div>

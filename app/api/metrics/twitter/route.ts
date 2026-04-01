@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-
+import { getMediaId } from '@/lib/twitter';
+import PostModel from "@/lib/models/PostModel";
 
 export async function GET(req: Request) {
   try {
@@ -83,21 +84,31 @@ export async function POST(req: Request) {
     try {
         const body = await req.json();
 
-        const session = await auth.api.getSession({
-            headers: req.headers // This is now automatically populated with the cookies
-        });
-
-        if (!session || !session.user) {
-            throw { message: 'Unauthorized', status: 401 };
-        }
-
         const { accessToken } = await auth.api.getAccessToken({
-            body: { providerId: "twitter" },
-            headers: await headers() // Pass current request headers for session context
+            body: { 
+                providerId: "twitter",
+                userId: body.userId
+            },
         });
+
+        console.log("Access token retrieved for Twitter:", accessToken);
 
         if (!accessToken) {
             throw { message: 'No access token found for Twitter', status: 403 };
+        }
+
+        const images = body.images || [];
+
+        const mediaIds = images.length > 0 ? await Promise.all(images.map((url: string) => getMediaId(url, accessToken))) : [];
+
+        console.log("Media IDs obtained from Twitter:", mediaIds);
+
+        const payload : any = { 
+            text: body.caption,
+        };
+
+        if (mediaIds.length > 0) {
+            payload["media"] = { media_ids: mediaIds };
         }
 
         const response = await fetch("https://api.x.com/2/tweets", {
@@ -106,7 +117,7 @@ export async function POST(req: Request) {
                 Authorization: `Bearer ${accessToken}`,
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ text: body.caption }),
+            body: JSON.stringify(payload),
         });
 
         const result = await response.json();
@@ -116,6 +127,13 @@ export async function POST(req: Request) {
             const errorMessage = result.detail || result.errors?.[0]?.message || 'Unknown Twitter Error';
             throw { message: errorMessage, status: response.status };
         }
+
+        await PostModel.updatePost(body.postId, {
+            status: "published",
+            qstashId: null,
+            twitterId: result.data.id,
+            ...body
+        })
 
         return NextResponse.json(result.data);
     } catch (error) {

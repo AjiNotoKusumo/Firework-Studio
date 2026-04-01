@@ -121,6 +121,8 @@ model Post {
   platform      Platform 
   status        PostStatus @default(draft)
   qstashId      String?
+  twitterId     String?
+  instagramId   String?
 
   scheduledAt   DateTime?
   publishedAt   DateTime?

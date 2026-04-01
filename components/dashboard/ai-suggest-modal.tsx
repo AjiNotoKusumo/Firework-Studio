@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AIGeneratedModal from '@/components/dashboard/ai-generated-modal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -75,12 +75,14 @@ export default function GeneratePostModal({
   open,
   onOpenChange,
   onSubmit,
-  postId
+  postId,
+  fetchIdeas
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSubmit: (data: any) => void;
   postId: string;
+  fetchIdeas?: () => void;
 }) {
   const [form, setForm] = useState<GeneratePostInput>({
     type: 'video',
@@ -97,9 +99,27 @@ export default function GeneratePostModal({
   const [customDuration, setCustomDuration] = useState<number>(15);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiData, setAiData] = useState<GeneratePostInput | null>(null);
-  const [selectedPosts, setSelectedPosts] = useState<SavedPost[]>([]);
+  const [selectedPosts, setSelectedPosts] = useState<any[]>([]);
   const [storyboardData, setStoryboardData] = useState<StoryboardData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [savedPosts, setSavedPosts] = useState<any[]>([]);
+
+  const fetchSavedPosts = async () => {
+    try {
+      const response = await fetch("/api/posts/trending")
+      if(!response.ok) {
+        throw new Error("Failed to fetch saved posts")
+      }
+
+      const data = await response.json()      
+
+      const postData  = data.data
+
+      setSavedPosts(postData)
+    } catch (error) {
+      console.error("Failed to fetch saved posts:", error)
+    }
+  }
 
   const togglePost = (post: SavedPost) => {
     setSelectedPosts((prev) => {
@@ -152,6 +172,12 @@ export default function GeneratePostModal({
       slides: type === 'carousel' ? 5 : null,
     }));
   };
+
+  useEffect(() => {
+    if(open) {
+      fetchSavedPosts();
+    }
+  }, [open]);
 
   // ===== UI =====
   return (
@@ -334,18 +360,18 @@ export default function GeneratePostModal({
             <label className="text-sm font-medium">Saved Posts ({selectedPosts.length})</label>
 
             <div className="grid grid-cols-2 gap-3 mt-2">
-              {MOCK_SAVED_POSTS.map((post) => {
+              {savedPosts.map((post) => {
                 const selected = selectedPosts.some((p) => p.id === post.id);
 
                 return (
                   <div
                     key={post.id}
-                    onClick={() => togglePost(post)}
+                    onClick={() => togglePost(post.postData)}
                     className={`cursor-pointer border rounded-xl overflow-hidden
             ${selected ? 'border-primary ring-2 ring-primary/40' : 'border-border'}`}>
-                    <img src={post.imageUrl} className="w-full h-24 object-cover" />
+                    <img src={post.postData.imageUrl} className="w-full h-24 object-cover" />
                     <div className="p-2 text-xs">
-                      <p>{post.caption}</p>
+                      <p className='text-foreground line-clamp-2'>{post.postData.caption}</p>
                     </div>
                   </div>
                 );
@@ -409,7 +435,7 @@ export default function GeneratePostModal({
           </button>
         </div>
       </DialogContent>
-      <AIGeneratedModal open={aiOpen} onOpenChange={setAiOpen} storyboardData={storyboardData} postId={postId}/>
+      <AIGeneratedModal open={aiOpen} onOpenChange={setAiOpen} storyboardData={storyboardData} postId={postId} fetchIdeas={fetchIdeas}/>
     </Dialog>
   );
 }
