@@ -1,4 +1,12 @@
 import { ApifyClient } from 'apify-client';
+import fetch from 'node-fetch';
+
+interface TwitterTrendingInput {
+  maxItems: number;
+  searchTerms: string[];
+  sort?: 'Latest' | 'Top';
+  tweetLanguage?: string;
+}
 
 const apify = new ApifyClient({
   token: process.env.APIFY_TOKEN,
@@ -36,4 +44,45 @@ export async function getInstagramHashtag(interests: string[]) {
   const datasets = await Promise.all(runs.map((run) => apify.dataset(run.defaultDatasetId).listItems()));
 
   return datasets;
+}
+
+
+export async function getTwitterTrending(input: TwitterTrendingInput) {
+  const { maxItems, searchTerms, sort = 'Latest', tweetLanguage = 'en' } = input;
+
+  // Build request payload for Apidojo / Tweet Scraper
+  const payload = {
+    maxItems,
+    searchTerms,
+    sort,
+    tweetLanguage,
+  };
+
+  try {
+    const res = await apify.actor("apidojo/tweet-scraper").call(payload);
+
+    const { items } = await apify.dataset(res.defaultDatasetId).listItems();
+
+    console.log('Fetched trending tweets:', items[0]);
+
+    // Map raw API tweets into simplified structure
+    return items.map((tweet: any) => ({
+      id: tweet.id_str || tweet.id,
+      text: tweet.text,
+      fullText: tweet.fullText || tweet.text,
+      username: tweet.author?.userName || tweet.username,
+      fullName: tweet.author?.name || tweet.fullName,
+      profilePicture: tweet.author?.profilePicture || tweet.profilePicture,
+      media: tweet.extendedEntities?.media?.length
+        ? tweet.extendedEntities.media.map((m: any) => m.media_url_https)
+        : [],
+      timestamp: tweet.createdAt,
+      likesCount: tweet.favorite_count || tweet.likeCount || 0,
+      retweetsCount: tweet.retweet_count || tweet.retweetCount || 0,
+      repliesCount: tweet.reply_count || tweet.replyCount || 0,
+    }));
+  } catch (err) {
+    console.error('Failed to fetch Twitter trending:', err);
+    return [];
+  }
 }

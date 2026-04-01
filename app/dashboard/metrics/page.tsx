@@ -65,7 +65,12 @@ const metricsData = {
 
 export default function MetricsPage() {
   const [activeTab, setActiveTab] = useState<"Instagram" | "Twitter">("Instagram")
-  const [twitterMetrics, setTwitterMetrics] = useState<any>({})
+  const [twitterMetrics, setTwitterMetrics] = useState<any>({
+    followers: "0",
+    like: "0",
+    posts: "0",
+    views: "0",
+  })
   const data = metricsData[activeTab]
 
   const fetchMetricsTwitter = async () => {

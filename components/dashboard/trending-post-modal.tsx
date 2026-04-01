@@ -3,13 +3,17 @@
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Heart, MessageCircle, Share2, Bookmark, ExternalLink, Instagram, Twitter, Sparkles } from 'lucide-react';
 import { TrendingPost } from '@/types';
+import Swal from 'sweetalert2';
+import { useRouter } from 'next/navigation';
 
 interface TrendingPostModalProps {
   post: TrendingPost | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave?: (postId: string) => void;
+  onSave?: (postsId: string) => void;
   isSaved?: boolean;
+  postId?: string;
+  fetchSavedPosts?: () => void;
 }
 
 const statusConfig = {
@@ -24,8 +28,47 @@ const formatNumber = (num: number) => {
   return num.toString();
 };
 
-export function TrendingPostModal({ post, open, onOpenChange, onSave, isSaved = false }: TrendingPostModalProps) {
+export function TrendingPostModal({ post, open, onOpenChange, onSave, isSaved = false, postId, fetchSavedPosts }: TrendingPostModalProps) {
+  const router = useRouter();
   if (!post) return null;
+
+  const handleSave = async () => {
+    try {
+      if(postId) {
+        console.log("Deleting post with ID:", postId);
+        const res = await fetch('/api/posts/trending', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postId }),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || 'Failed to save post');
+        }
+
+        fetchSavedPosts?.();
+        return onSave?.(post.id);
+      }
+
+      const res = await fetch('/api/posts/trending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(post),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to save post');
+      }
+
+      onSave?.(post.id);
+
+    } catch (error) {
+      const message = (error as Error).message;
+      console.log("Error saving post:", message);
+    }
+  }
 
   const status = statusConfig[post.status];
   const PlatformIcon = post.platform === 'instagram' ? Instagram : Twitter;
@@ -134,7 +177,7 @@ export function TrendingPostModal({ post, open, onOpenChange, onSave, isSaved = 
             <div className="flex items-center gap-2 px-5 py-3.5 border-t border-border flex-shrink-0 bg-card">
               {/* Save — icon + label, fixed width */}
               <button
-                onClick={() => onSave?.(post.id)}
+                onClick={() =>  { handleSave()}}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-[10px] border text-xs font-medium transition-all flex-shrink-0 ${
                   isSaved ?
                     'border-[#FFD54F] bg-[#FFD54F]/10 text-[#D97706]'

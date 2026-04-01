@@ -140,4 +140,51 @@ export default class PostModel {
 
         return { message: "Post deleted successfully" };
     }
+
+    static async saveTrendingPosts(userId: string, post: any) {
+        if (!userId) {
+            throw { message: "userId is required to update a post", status: 400 };
+        }
+
+        const savedPost = await prisma.savedPost.create({
+            data: {
+                userId,
+                postData: post,
+            }
+        })
+        return savedPost;
+    }
+
+    static async getTrendingPosts(userId: string) {
+        if (!userId) {
+            throw { message: "userId is required to get trending posts", status: 400 };
+        }
+
+        const savedPosts = await prisma.savedPost.findMany({
+            where: { userId },
+        });
+
+        return savedPosts;
+    }
+
+    static async deleteSavedPost(savedPostId: string) {
+        if (!savedPostId) {
+            throw { message: "savedPostId is required to delete a saved post", status: 400 };
+
+        }
+
+        const savedPost = await prisma.savedPost.findUnique({
+            where: { id: savedPostId },
+        });
+
+        if (!savedPost) {
+            throw { message: "Saved post not found", status: 404 };
+        }
+
+        await prisma.savedPost.delete({
+            where: { id: savedPostId },
+        });
+
+        return { message: "Saved post deleted successfully" };
+    }
 }

@@ -4,6 +4,7 @@ export const runtime = 'nodejs';
 import { getInstagramTrending } from '@/lib/apify';
 import { auth } from '@/lib/auth';
 import { getTopicUrls } from '@/lib/gemini';
+// import redis from '@/lib/redis';
 
 export async function POST(req: Request) {
   try {
@@ -15,6 +16,13 @@ export async function POST(req: Request) {
     if (!session || !session.user) {
         throw { message: 'Unauthorized', status: 401 };
     }
+
+    // const cachedPosts = await redis.get(`trending_instagram_${session.user.id}`);
+
+    // if (cachedPosts) {
+    //   console.log('Returning cached trending posts for user:', session.user.id);
+    //   return Response.json(JSON.parse(cachedPosts));
+    // }
 
     const interests = session.user.interests || [];
     
@@ -36,6 +44,8 @@ export async function POST(req: Request) {
       shortCode: item.shortCode,
       displayUrl: item.displayUrl,
     }));
+
+    // await redis.set(`trending_instagram_${session.user.id}`, JSON.stringify(trendingPosts), 'EX', 60 * 60 * 24);
 
     return Response.json(trendingPosts);
   } catch (error) {
