@@ -82,8 +82,8 @@ export default function TrendingPage() {
         url: post.url || '',
       }));
 
-      setHashtags((prev) => [...prev, ...formattedHashtags]);
-      setPosts((prev) => [...prev, ...formattedPosts]);
+      setHashtags(formattedHashtags);
+      setPosts(formattedPosts);
     } catch (err) {
       console.error('Error fetching data:', err);
     } finally {
@@ -125,7 +125,8 @@ export default function TrendingPage() {
       }));
 
       setTwitterHashtags(formattedTwitterHashtags);
-      setPosts((prev) => [...prev, ...formattedPosts]);
+      setPosts(formattedPosts);
+      // setPosts((prev) => [...prev, ...formattedPosts]);
     } catch (err) {
       console.error('Error fetching Twitter data:', err);
     } finally {
@@ -146,19 +147,28 @@ export default function TrendingPage() {
     <div className="p-8">
       {/* HASHTAGS */}
       <section className="mb-8 flex flex-col gap-6">
-        <ChartCard title="Top Hashtags" subtitle="Live Instagram hashtag popularity" data={hashtags} type="bar" />
+        <ChartCard
+          title="Top Instagram Hashtags"
+          subtitle="Live Instagram hashtag popularity"
+          data={hashtags}
+          type="bar"
+        />
       </section>
 
-      {/* ---------------- TWITTER HASHTAGS GRID ---------------- */}
+      {/* ---------------- TWITTER HASHTAGS FLEX GRID ---------------- */}
       <section className="mb-8">
         <h2 className="text-lg font-semibold mb-2 text-foreground">Top Twitter Hashtags</h2>
         <p className="text-sm text-muted-foreground mb-4">Live trending hashtags</p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full">
+        <div className="flex flex-wrap gap-3">
           {twitterHashtags.map((tag) => (
             <div
               key={tag.name}
-              className="w-full h-20 flex items-center justify-center rounded-lg bg-gradient-to-r from-purple-200 via-pink-200 to-red-200 font-semibold text-center text-lg cursor-pointer hover:scale-105 transition">
+              className="inline-flex items-center justify-center rounded-lg 
+                   bg-gradient-to-r from-purple-200 via-pink-200 to-red-200 
+                   font-semibold text-center text-base sm:text-lg 
+                   px-12 py-2 break-words whitespace-nowrap max-w-[500px]
+                   cursor-pointer hover:scale-105 transition-transform duration-200 ease-in-out">
               #{tag.name}
             </div>
           ))}

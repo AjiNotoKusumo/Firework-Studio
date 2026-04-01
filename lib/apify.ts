@@ -1,5 +1,4 @@
 import { ApifyClient } from 'apify-client';
-import fetch from 'node-fetch';
 
 interface TwitterTrendingInput {
   maxItems: number;
