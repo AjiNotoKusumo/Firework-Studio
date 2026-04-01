@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { PostForm } from '@/components/dashboard/post-form';
 import { PostPreview } from '@/components/dashboard/post-preview';
@@ -10,6 +10,7 @@ import { type Post } from '@/lib/posts-data';
 import { TrendingUp, Flame, Sparkles } from 'lucide-react';
 import { TrendingPost } from '@/types';
 import StoryboardPreviewModal from '@/components/dashboard/ai-generated-modal';
+import { useRouter } from 'next/navigation';
 
 const statusConfig = {
   trending: { label: 'Trending', className: 'bg-[#FFD54F] text-[#2E2E2E]' },
@@ -77,9 +78,12 @@ const redzoneIdeasData = [
   },
 ];
 
+
+
 type RedzoneIdea = (typeof redzoneIdeasData)[number];
 
 export default function CreatePostPage() {
+    
   const [formData, setFormData] = useState<Partial<Post>>({
     images: [],
     caption: '',
@@ -95,7 +99,9 @@ export default function CreatePostPage() {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [ideas] = useState<RedzoneIdea[]>(redzoneIdeasData);
   const [selectedIdea, setSelectedIdea] = useState<RedzoneIdea | null>(null);
-
+  const [savedPosts, setSavedPosts] = useState<any[]>([]);
+  const [postId, setPostId] = useState<any>('');
+  const router = useRouter();
   const trendingPosts: TrendingPost[] = [
     {
       id: '1',
@@ -136,6 +142,59 @@ export default function CreatePostPage() {
     },
   ];
 
+  const createInstance = async () => {
+    try {
+      const existingId = localStorage.getItem('creatingPostId');
+
+      if (existingId && existingId !== 'pending') {
+        setPostId(existingId);
+        return;
+      }
+
+      if (existingId === 'pending') {
+        return;
+      }
+
+      localStorage.setItem('creatingPostId', 'pending');
+
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to create post instance');
+      }
+
+      const post = await res.json();
+
+      localStorage.setItem('creatingPostId', post.data.id);
+      setPostId(post.data.id);
+
+    } catch (error) {
+      console.log('Error creating post instance:', error);
+      router.push('/dashboard/planning');
+    }
+  };
+
+  const fetchSavedPosts = async () => {
+    try {
+      const response = await fetch("/api/posts/trending")
+      if(!response.ok) {
+        throw new Error("Failed to fetch saved posts")
+      }
+
+      const data = await response.json()      
+
+      const postData  = data.data
+
+      setSavedPosts(postData)
+    } catch (error) {
+      console.error("Failed to fetch saved posts:", error)
+    }
+  }
+
   const openTrendingModal = (post: TrendingPost) => {
     setSelectedPost(post);
     setIsTrendingModalOpen(true);
@@ -152,13 +211,19 @@ export default function CreatePostPage() {
     setIsTrendingModalOpen(false);
   };
 
+  useEffect(() => {
+    fetchSavedPosts();
+    createInstance();
+  }, [])
+
+
   return (
     <div className="p-6 space-y-6">
       {/* ═══ TOP: Create Post Panel ═══ */}
       <div className="rounded-[20px] bg-card shadow-sm border border-border overflow-hidden">
         <div className="grid lg:grid-cols-2 min-h-[600px]">
           <div className="border-r border-border overflow-y-auto">
-            <PostForm formData={formData} setFormData={setFormData} mode="create" />
+            <PostForm formData={formData} setFormData={setFormData} mode="create" postId={postId} />
           </div>
 
           <div className="hidden lg:flex items-center justify-center bg-muted/40 p-8">
@@ -178,31 +243,31 @@ export default function CreatePostPage() {
         </div>
 
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          {trendingPosts.map((post) => {
-            const status = statusConfig[post.status];
+          {savedPosts.map((post) => {
+            // const status = statusConfig[post.status];
             return (
               <button
                 key={post.id}
-                onClick={() => openTrendingModal(post)}
+                onClick={() => openTrendingModal(post.postData)}
                 className="group flex-shrink-0 w-[160px] rounded-[14px] border border-border bg-card overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-left">
                 <div className="relative w-full aspect-square">
                   <Image
-                    src={post.imageUrl}
-                    alt={post.caption}
+                    src={post.postData.imageUrl}
+                    alt={post.postData.caption}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <span
+                  {/* <span
                     className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-semibold ${status.className}`}>
                     {status.label}
-                  </span>
+                  </span> */}
                 </div>
 
                 <div className="p-2.5">
-                  <p className="text-xs line-clamp-2 mb-1.5">{post.caption}</p>
+                  <p className="text-xs line-clamp-2 mb-1.5">{post.postData.caption}</p>
                   <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <TrendingUp className="h-3 w-3" />
-                    <span>{formatNumber(post.likes)} likes</span>
+                    <span>{formatNumber(post.postData.likes)} likes</span>
                   </div>
                 </div>
               </button>
@@ -306,6 +371,7 @@ export default function CreatePostPage() {
         onSubmit={(data: any) => {
           console.log('AI INPUT:', data);
         }}
+        postId={postId}
       />
 
       {/* Storyboard Preview Modal */}

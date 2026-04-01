@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { PostCard } from "@/components/dashboard/post-card"
 import { TrendingPostModal } from "@/components/dashboard/trending-post-modal"
 import { Bookmark } from "lucide-react"
@@ -16,7 +16,8 @@ const savedPostsData = [
     shares: 3200,
     status: "trending" as const,
     platform: "instagram" as const,
-    author: { name: "NatureExplorer", avatar: "" }
+    author: { name: "NatureExplorer", avatar: "" },
+    url: "https://www.instagram.com/p/EXAMPLE1"
   },
   {
     id: "saved-2",
@@ -27,7 +28,8 @@ const savedPostsData = [
     shares: 4500,
     status: "trending" as const,
     platform: "instagram" as const,
-    author: { name: "CoastalDreamer", avatar: "" }
+    author: { name: "CoastalDreamer", avatar: "" },
+    url: "https://www.instagram.com/p/EXAMPLE2"
   },
   {
     id: "saved-3",
@@ -38,20 +40,45 @@ const savedPostsData = [
     shares: 2800,
     status: "trending" as const,
     platform: "instagram" as const,
-    author: { name: "TrailBlazer", avatar: "" }
+    author: { name: "TrailBlazer", avatar: "" },
+    url: "https://www.instagram.com/p/EXAMPLE3"
   },
 ]
 
 type SavedPost = typeof savedPostsData[number]
 
 export default function SavedPage() {
-  const [savedPosts, setSavedPosts] = useState(savedPostsData)
+  const [savedPosts, setSavedPosts] = useState<any[]>([])
+  const [postsId, setPostsId] = useState<string[]>([])
   const [selectedPost, setSelectedPost] = useState<SavedPost | null>(null)
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
 
+  const fetchSavedPosts = async () => {
+    try {
+      const response = await fetch("/api/posts/trending")
+      if(!response.ok) {
+        throw new Error("Failed to fetch saved posts")
+      }
+
+      const data = await response.json()      
+
+      const postData  = data.data
+
+      setSavedPosts(postData)
+    } catch (error) {
+      console.error("Failed to fetch saved posts:", error)
+    }
+  }
+
+  
   const handleUnsavePost = (postId: string) => {
     setSavedPosts(prev => prev.filter(p => p.id !== postId))
     setSelectedPost(null)
   }
+
+  useEffect(() => {
+    fetchSavedPosts()
+  }, [])
 
   return (
     <div className="p-8">
@@ -67,10 +94,13 @@ export default function SavedPage() {
             {savedPosts.map((post) => (
               <button 
                 key={post.id} 
-                onClick={() => setSelectedPost(post)}
+                onClick={() => {
+                  setSelectedPost(post.postData);
+                  setSelectedPostId(post.id);
+                }}
                 className="text-left transition-transform hover:scale-[1.02]"
               >
-                <PostCard {...post} />
+                <PostCard {...post.postData} />
               </button>
             ))}
           </div>
@@ -82,6 +112,8 @@ export default function SavedPage() {
             onOpenChange={(open) => !open && setSelectedPost(null)}
             onSave={handleUnsavePost}
             isSaved={true}
+            postId={selectedPostId as string}
+            fetchSavedPosts={fetchSavedPosts}
           />
         </>
       ) : (

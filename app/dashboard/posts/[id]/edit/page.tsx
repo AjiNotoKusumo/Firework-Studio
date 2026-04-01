@@ -120,7 +120,7 @@ export default function EditPostPage() {
         const data = await response.json()
 
         setFormData({
-          images: data.images || [],
+          images: data.media.map((img: any) => img.url) || [],
           caption: data.caption || '',
           platform: data.platform || 'instagram',
           postType: data.postType || 'carousel',
@@ -281,6 +281,7 @@ export default function EditPostPage() {
         onSubmit={(data : any) => {
           console.log('AI INPUT:', data);
         }}
+        postId={params.id as string}
       />
     </div>
   </> 

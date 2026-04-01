@@ -1,5 +1,8 @@
-// app/api/trending-posts/route.ts
+// app/api/trending-tweets/route.ts
+export const runtime = 'nodejs';
+
 import { auth } from '@/lib/auth';
+<<<<<<< HEAD
 import { headers } from 'next/headers';
 
 export async function GET(req: Request) {
@@ -11,9 +14,21 @@ export async function GET(req: Request) {
     if (!session || !session.user) {
       throw { message: 'Unauthorized', status: 401 };
     }
+=======
+import { getTwitterTrending } from '@/lib/apify';
+
+export async function GET(req: Request) {
+  try {
+    const session = await auth.api.getSession({ headers: req.headers });
+    if (!session || !session.user) throw { message: 'Unauthorized', status: 401 };
+>>>>>>> a4ee9f5dbd461651c0f7574547eb1ac52de0fe2d
 
     const interests = session.user.interests || [];
+    const searchTerms = interests.map(
+      (topic: string) => `(${topic} OR ai OR developer OR coding OR technology) (min_faves:200) -is:retweet`
+    );
 
+<<<<<<< HEAD
     const { accessToken } = await auth.api.getAccessToken({
       body: { providerId: 'twitter' },
       headers: await headers(), // Pass current request headers for session context
@@ -59,5 +74,38 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error(error);
     return Response.json({ error: 'Failed to fetch trending posts' }, { status: 500 });
+=======
+    const items = await getTwitterTrending({
+      maxItems: 50,
+      searchTerms,
+      sort: 'Latest',
+      tweetLanguage: 'en',
+    });
+
+    const trendingTweets = items.map((tweet: any) => ({
+      id: tweet.id,
+      text: tweet.text,
+      fullText: tweet.fullText || tweet.text,
+      url: `https://x.com/${tweet.username}/status/${tweet.id}`,
+      twitterUrl: `https://twitter.com/${tweet.username}/status/${tweet.id}`,
+      createdAt: tweet.timestamp,
+      likesCount: tweet.likesCount || 0,
+      retweetCount: tweet.retweetsCount || 0,
+      replyCount: tweet.repliesCount || 0,
+      media: tweet.media && tweet.media.length ? [tweet.media[0]] : [],
+      author: {
+        userName: tweet.username,
+        name: tweet.fullName,
+        profilePicture: tweet.profilePicture || '',
+        url: `https://x.com/${tweet.username}`,
+        twitterUrl: `https://twitter.com/${tweet.username}`,
+      },
+    }));
+
+    return Response.json(trendingTweets);
+  } catch (err) {
+    console.error(err);
+    return Response.json({ error: 'Failed to fetch trending tweets' }, { status: 500 });
+>>>>>>> a4ee9f5dbd461651c0f7574547eb1ac52de0fe2d
   }
 }

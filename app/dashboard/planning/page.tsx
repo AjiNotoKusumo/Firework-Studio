@@ -73,7 +73,7 @@ export default function PlanningPage() {
               </div>
             </div>
             <p className="mt-4 text-sm text-foreground line-clamp-2">{post.caption}</p>
-            {post.scheduledAt && (
+            {post.scheduledAt && post.status === "scheduled" && (
               <p className="mt-2 text-xs text-muted-foreground">
                 Scheduled for {new Date(post.scheduledAt).toLocaleDateString('en-US', { 
                   month: 'short', 

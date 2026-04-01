@@ -75,10 +75,12 @@ export default function GeneratePostModal({
   open,
   onOpenChange,
   onSubmit,
+  postId
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSubmit: (data: any) => void;
+  postId: string;
 }) {
   const [form, setForm] = useState<GeneratePostInput>({
     type: 'video',
@@ -407,7 +409,7 @@ export default function GeneratePostModal({
           </button>
         </div>
       </DialogContent>
-      <AIGeneratedModal open={aiOpen} onOpenChange={setAiOpen} storyboardData={storyboardData} />
+      <AIGeneratedModal open={aiOpen} onOpenChange={setAiOpen} storyboardData={storyboardData} postId={postId}/>
     </Dialog>
   );
 }

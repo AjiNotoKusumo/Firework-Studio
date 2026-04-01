@@ -48,7 +48,7 @@ export default function TrendingPage() {
           body: JSON.stringify({ interests }),
           headers: { 'Content-Type': 'application/json' },
         }),
-        fetch('/api/trending', {
+        fetch('/api/trending/instagram', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         }),
@@ -81,8 +81,8 @@ export default function TrendingPage() {
         url: post.url || '',
       }));
 
-      setHashtags(formattedHashtags);
-      setPosts(formattedPosts);
+      setHashtags(prev => [...prev, ...formattedHashtags]);
+      setPosts(prev => [...prev, ...formattedPosts]);
     } catch (err) {
       console.error('Error fetching data:', err);
     } finally {
@@ -94,9 +94,32 @@ export default function TrendingPage() {
     try {
       const response = await fetch('/api/trending/twitter');
 
+<<<<<<< HEAD
       const data = await response.json();
 
       console.log('Twitter trending data:', data);
+=======
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json()
+
+      const formattedPosts: TrendingPost[] = (data || []).map((post: any, i: number) => ({
+        id: post.id || `tweet-${i}`,
+        imageUrl: post.media[0] || "https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg",
+        caption: post.text || '',
+        likes: post.likesCount || 0,
+        comments: post.replyCount || 0,
+        shares: post.retweetCount || 0,
+        status: getStatus(post.likesCount || 0, post.replyCount || 0),
+        platform: 'twitter',
+        author: { name: post.author.userName || 'unknown', avatar: '' },
+        url: post.url || '',
+      }));
+
+      setPosts(prev => [...prev, ...formattedPosts]);
+>>>>>>> a4ee9f5dbd461651c0f7574547eb1ac52de0fe2d
     } catch (error) {
       console.error('Error fetching Twitter data:', error);
     }
@@ -144,9 +167,9 @@ export default function TrendingPage() {
         {loading ?
           <div className="text-sm text-muted-foreground">Loading...</div>
         : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {posts.map((post) => (
+            {posts.map((post, index) => (
               <button
-                key={post.id}
+                key={`post-${post.id}-${index}`}
                 onClick={() => setSelectedPost(post)}
                 className="text-left transition-transform hover:scale-[1.02]">
                 <PostCard {...post} />

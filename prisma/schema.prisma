@@ -46,6 +46,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   posts         Post[]
+  savePosts     SavedPost[]
 
   @@unique([email])
   @@map("user")
@@ -119,6 +120,7 @@ model Post {
   postType      PostType @default(carousel)
   platform      Platform 
   status        PostStatus @default(draft)
+  qstashId      String?
 
   scheduledAt   DateTime?
   publishedAt   DateTime?
@@ -127,6 +129,7 @@ model Post {
   updatedAt     DateTime @updatedAt
 
   media         PostMedia[]
+  planning      Planning[]
 
   user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -143,3 +146,33 @@ model PostMedia {
 
   post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
+
+model SavedPost {
+  id        String   @id @default(uuid())
+  userId        String
+  postData   Json
+  createdAt DateTime @default(now())
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Planning {
+  id           String   @id @default(uuid())
+  postId       String
+  concept      Json
+  globalStyle  Json
+  structure    String
+  scenes       Scene[]
+
+  post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Scene {
+  id           String   @id @default(uuid())
+  planningId   String
+  sceneNumber  Int
+  scene        Json
+
+  planning      Planning @relation(fields: [planningId ], references: [id], onDelete: Cascade)
+}
+

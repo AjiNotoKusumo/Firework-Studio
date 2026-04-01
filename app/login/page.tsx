@@ -4,8 +4,8 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { createAuthClient } from "better-auth/client"
-const authClient =  createAuthClient()
+import { createAuthClient } from 'better-auth/client';
+const authClient = createAuthClient();
 
 const sideImages = [
   'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600',
@@ -31,11 +31,11 @@ export default function LoginPage() {
 
   const twitterSignIn = async () => {
     const data = await authClient.signIn.social({
-        provider: "twitter",
-        callbackURL: "/",
-        newUserCallbackURL: "/onboarding"
-    })
-  }
+      provider: 'twitter',
+      callbackURL: '/',
+      newUserCallbackURL: '/onboarding',
+    });
+  };
 
   return (
     <div className="relative min-h-screen bg-background overflow-hidden flex items-center justify-center px-6">
@@ -145,7 +145,9 @@ export default function LoginPage() {
               <Image src="/instagram.jpeg" alt="Instagram Logo" width={25} height={25} />
             </button>
 
-            <button onClick={twitterSignIn} className="w-full mt-2 flex items-center justify-center rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] hover:scale-110 transition-all">
+            <button
+              onClick={twitterSignIn}
+              className="w-full mt-2 flex items-center justify-center rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] hover:scale-110 transition-all">
               <Image src="/twitter.jpeg" alt="Twitter Logo" width={25} height={25} />
             </button>
           </div>
