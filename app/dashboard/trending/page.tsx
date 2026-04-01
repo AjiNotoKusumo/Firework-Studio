@@ -91,18 +91,16 @@ export default function TrendingPage() {
   }
 
   async function fetchDataTwitter() {
-    try{
-      const response = await fetch("/api/trending/twitter")
+    try {
+      const response = await fetch('/api/trending/twitter');
 
-      const data = await response.json()
+      const data = await response.json();
 
-      console.log("Twitter trending data:", data)
-      
+      console.log('Twitter trending data:', data);
     } catch (error) {
-      console.error("Error fetching Twitter data:", error)
+      console.error('Error fetching Twitter data:', error);
     }
   }
-
 
   useEffect(() => {
     fetchDataTwitter();
@@ -118,8 +116,22 @@ export default function TrendingPage() {
       {/* HASHTAGS */}
       <section className="mb-8 flex flex-col gap-6">
         <ChartCard title="Top Hashtags" subtitle="Live Instagram hashtag popularity" data={hashtags} type="bar" />
+      </section>
 
-        <ChartCard title="Top Hashtags" subtitle="Live Twitter hashtag popularity" data={hashtags} type="bar" />
+      {/* ---------------- TWITTER HASHTAGS GRID ---------------- */}
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold mb-2 text-foreground">Top Twitter Hashtags</h2>
+        <p className="text-sm text-muted-foreground mb-4">Live trending hashtags (no counts)</p>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full">
+          {twitterHashtags.map((tag) => (
+            <div
+              key={tag.name}
+              className="w-full h-20 flex items-center justify-center rounded-lg bg-gradient-to-r from-purple-200 via-pink-200 to-red-200 font-semibold text-center text-lg cursor-pointer hover:scale-105 transition">
+              #{tag.name}
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* POSTS */}

@@ -1,47 +1,46 @@
 // app/api/trending-posts/route.ts
 import { auth } from '@/lib/auth';
-import { headers } from "next/headers";
+import { headers } from 'next/headers';
 
 export async function GET(req: Request) {
   try {
-
     const session = await auth.api.getSession({
-        headers: req.headers // This is now automatically populated with the cookies
+      headers: req.headers, // This is now automatically populated with the cookies
     });
 
     if (!session || !session.user) {
-        throw { message: 'Unauthorized', status: 401 };
+      throw { message: 'Unauthorized', status: 401 };
     }
 
     const interests = session.user.interests || [];
 
     const { accessToken } = await auth.api.getAccessToken({
-        body: { providerId: "twitter" },
-        headers: await headers() // Pass current request headers for session context
+      body: { providerId: 'twitter' },
+      headers: await headers(), // Pass current request headers for session context
     });
 
     if (!accessToken) {
-        throw { message: 'No access token found for Twitter', status: 403 };
+      throw { message: 'No access token found for Twitter', status: 403 };
     }
 
-    const query = `(${interests.join(" OR ")}) has:media -is:retweet -is:reply`;
+    const query = `(${interests.join(' OR ')}) has:media -is:retweet -is:reply`;
 
     // 2. Encode the query for the URL (crucial for spaces and parentheses)
     const encodedQuery = encodeURIComponent(query);
 
     const postSearch = await fetch(
-        `https://api.x.com/2/tweets/search/all?query=${encodedQuery}&sort_order=relevancy&tweet.fields=public_metrics,attachments&expansions=attachments.media_keys&media.fields=url,preview_image_url&max_results=30`,
-        {
-            method: "GET",
-            headers: {
-                Authorization: `Bearer ${process.env.TWITTER_BEARER_TOKEN}`, // The token from Better Auth
-            },
-        }
+      `https://api.x.com/2/tweets/search/all?query=${encodedQuery}&sort_order=relevancy&tweet.fields=public_metrics,attachments&expansions=attachments.media_keys&media.fields=url,preview_image_url&max_results=30`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${process.env.TWITTER_BEARER_TOKEN}`, // The token from Better Auth
+        },
+      },
     );
-    
+
     const postResult = await postSearch.json();
 
-    console.log("Twitter API search result:", postResult);
+    console.log('Twitter API search result:', postResult);
 
     // 3️⃣ Map to frontend-ready structure
     // const trendingPosts = items.map((item: any) => ({
