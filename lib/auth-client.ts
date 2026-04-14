@@ -1,5 +1,5 @@
 import { createAuthClient } from "better-auth/react";
-import { inferAdditionalFields } from "better-auth/client/plugins";
+import { genericOAuthClient, inferAdditionalFields } from "better-auth/client/plugins";
 
 export const authClient = createAuthClient({
     baseURL: process.env.NEXT_PUBLIC_APP_URL, 
@@ -9,7 +9,8 @@ export const authClient = createAuthClient({
                 interests: { type: "string[]" },
                 onboardingComplete: { type: "boolean" }
             }
-        })
+        }),
+        genericOAuthClient()
     ]
 });
 

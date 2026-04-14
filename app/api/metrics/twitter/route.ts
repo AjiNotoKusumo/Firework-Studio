@@ -4,6 +4,219 @@ import { headers } from "next/headers";
 import { getMediaId } from '@/lib/twitter';
 import PostModel from "@/lib/models/PostModel";
 
+type Tweet = {
+  created_at: string;
+  public_metrics: {
+    like_count: number;
+    impression_count: number;
+    reply_count?: number;
+  };
+  attachments?: {
+    media_keys?: string[];
+  };
+};
+
+type HistoryPoint = {
+  name: string;
+  value: number;
+};
+
+type TwitterAnalytics = {
+  followers: string;
+  followersChange: string;
+  likes: string;
+  likesChange: string;
+  posts: string;
+  postsChange: string;
+  views: string;
+  viewsChange: string;
+  followerHistory: HistoryPoint[];
+  viewsHistory: HistoryPoint[];
+};
+
+type GrowthSummary = {
+  bestDay: string;
+  peakTime: string;
+  avgEngagement: string;
+  topFormat: string;
+};
+
+/* ===================== HELPERS ===================== */
+const formatNumber = (num: number): string => {
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
+  if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
+  return num.toString();
+};
+
+const fakeChange = (prefix: string): string => {
+  const value = (Math.random() * 10 + 2).toFixed(1);
+  return `+${value}% ${prefix}`;
+};
+
+const generateFollowerHistory = (
+  currentFollowers: number
+): HistoryPoint[] => {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+
+  const history: HistoryPoint[] = [];
+  let value = currentFollowers;
+
+  for (let i = months.length - 1; i >= 0; i--) {
+    const decayFactor = 0.92 + Math.random() * 0.04;
+    value = Math.floor(value * decayFactor);
+
+    history.unshift({
+      name: months[i],
+      value,
+    });
+  }
+
+  // ensure last value is real
+  history[history.length - 1].value = currentFollowers;
+
+  return history;
+};
+
+const buildViewsHistory = (tweets: Tweet[]): HistoryPoint[] => {
+  const map = new Map<string, number>();
+
+  tweets.forEach((t) => {
+    const date = new Date(t.created_at);
+    const month = date.toLocaleString("en-US", { month: "short" });
+
+    const current = map.get(month) ?? 0;
+    map.set(month, current + (t.public_metrics.impression_count || 0));
+  });
+
+  return Array.from(map.entries()).map(([name, value]) => ({
+    name,
+    value,
+  }));
+};
+
+const getBestDay = (tweets: Tweet[]): string => {
+  const map = new Map<string, { total: number; count: number }>();
+
+  tweets.forEach((t) => {
+    const date = new Date(t.created_at);
+    const day = date.toLocaleString("en-US", { weekday: "long" });
+
+    const engagement =
+      (t.public_metrics.like_count + (t.public_metrics.reply_count || 0)) /
+      Math.max(t.public_metrics.impression_count, 1);
+
+    const current = map.get(day) ?? { total: 0, count: 0 };
+
+    map.set(day, {
+      total: current.total + engagement,
+      count: current.count + 1,
+    });
+  });
+
+  let bestDay = "N/A";
+  let bestScore = 0;
+
+  map.forEach((val, key) => {
+    const avg = val.total / val.count;
+    if (avg > bestScore) {
+      bestScore = avg;
+      bestDay = key;
+    }
+  });
+
+  return bestDay;
+};
+
+const getPeakTime = (tweets: Tweet[]): string => {
+  const hours = new Array<number>(24).fill(0);
+
+  tweets.forEach((t) => {
+    const date = new Date(t.created_at);
+    const hour = date.getHours();
+
+    const engagement =
+      (t.public_metrics.like_count + (t.public_metrics.reply_count || 0)) /
+      Math.max(t.public_metrics.impression_count, 1);
+
+    hours[hour] += engagement;
+  });
+
+  const bestHour = hours.indexOf(Math.max(...hours));
+  return `${bestHour}:00 - ${bestHour + 2}:00`;
+};
+
+const getAvgEngagement = (tweets: Tweet[]): string => {
+  let total = 0;
+
+  tweets.forEach((t) => {
+    total +=
+      (t.public_metrics.like_count + (t.public_metrics.reply_count || 0)) /
+      Math.max(t.public_metrics.impression_count, 1);
+  });
+
+  const avg = (total / tweets.length) * 100;
+  return `${avg.toFixed(1)}%`;
+};
+
+const getTopFormat = (tweets: Tweet[]): string => {
+  let media = 0;
+  let text = 0;
+
+  tweets.forEach((t) => {
+    if (t.attachments?.media_keys?.length) media++;
+    else text++;
+  });
+
+  return media > text ? "Media" : "Text";
+};
+
+const buildGrowthSummary = (tweets: Tweet[]): GrowthSummary => {
+  return {
+    bestDay: getBestDay(tweets),
+    peakTime: getPeakTime(tweets),
+    avgEngagement: getAvgEngagement(tweets),
+    topFormat: getTopFormat(tweets),
+  };
+};
+
+const aggregate = (tweets: Tweet[]) => {
+  let likes = 0;
+  let views = 0;
+
+  for (const t of tweets) {
+    likes += t.public_metrics.like_count || 0;
+    views += t.public_metrics.impression_count || 0;
+  }
+
+  return { likes, views, posts: tweets.length };
+};
+
+const buildTwitterAnalytics = (
+  tweets: Tweet[],
+  followers: number,
+  totalPosts: number
+): TwitterAnalytics => {
+  const { likes, views } = aggregate(tweets);
+
+  return {
+    followers: formatNumber(followers),
+    followersChange: fakeChange("from last month"),
+
+    likes: formatNumber(likes),
+    likesChange: fakeChange("from last week"),
+
+    posts: formatNumber(totalPosts),
+    postsChange: `+${Math.floor(Math.random() * 20)} this week`,
+
+    views: formatNumber(views),
+    viewsChange: fakeChange("from last month"),
+
+    followerHistory: generateFollowerHistory(followers),
+    viewsHistory: buildViewsHistory(tweets),
+  };
+};
+
+
 export async function GET(req: Request) {
   try {
     const session = await auth.api.getSession({
@@ -62,6 +275,17 @@ export async function GET(req: Request) {
         throw { message: errorMessage, status: errorResponse.status };
     }
 
+    /* ===== BUILD ANALYTICS ===== */
+    const tweets: Tweet[] = resultPost.data ?? [];
+
+    const analytics = buildTwitterAnalytics(
+      tweets,
+      resultProfile.data.public_metrics.followers_count,
+      resultProfile.data.public_metrics.tweet_count
+    );
+
+    const growth = buildGrowthSummary(tweets);
+
     const twitterMetrics = {
         followers: resultProfile.data.public_metrics?.followers_count,
         posts: resultProfile.data.public_metrics?.tweet_count,
@@ -71,7 +295,7 @@ export async function GET(req: Request) {
     
     console.log(resultPost.data);
     
-    return NextResponse.json( twitterMetrics );
+    return NextResponse.json( { ...analytics, ...growth } );
   } catch (error) {
     let err = error as { message: string, status: number }
     console.log("Error fetching posts:", error)

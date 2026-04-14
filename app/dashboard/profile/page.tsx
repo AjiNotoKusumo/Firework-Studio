@@ -7,10 +7,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-const accounts = [
-  { platform: 'Instagram', username: '@indra.creates', icon: Instagram },
-  { platform: 'Twitter', username: '@indra_tw', icon: Twitter },
-];
+// const accounts = [
+//   { platform: 'Instagram', username: '@indra.creates', icon: Instagram },
+//   { platform: 'Twitter', username: '@indra_tw', icon: Twitter },
+// ];
 
 const SUGGESTIONS = ['growth', 'branding', 'startup', 'design', 'ai', 'social media'];
 
@@ -34,10 +34,11 @@ export default function ProfilePage() {
   const [userInterests, setUserInterests] = useState<string[]>([]);
   const [input, setInput] = useState('');
   const { data: session, isPending } = useSession();
+  const [accounts, setAccounts] = useState<any>([]);
 
   useEffect(() => {
     if (!isPending && !session?.user) {
-      router.push("/sign-in");
+      router.push("/login");
     }
 
     setUserInterests(session?.user?.interests || []);
@@ -79,12 +80,65 @@ export default function ProfilePage() {
     router.push("/");
   }
 
+  const handleLinkInstagram = async () => {
+    try {
+      const {data, error} = await authClient.oauth2.link({
+        providerId: 'instagram',
+        callbackURL: '/dashboard/profile',
+      })
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      console.error("Error linking Instagram account:", error);
+    }
+  }
+
+  const handleLinkTwitter = async () => {
+    try {
+      const {data, error} = await authClient.linkSocial({
+        provider: 'twitter',
+        callbackURL: '/dashboard/profile',
+      })
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      console.error("Error linking Twitter account:", error);
+    }
+  }
+
+  const getMyAccounts = async () => {
+    try {
+      const { data, error } = await authClient.listAccounts();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      setAccounts(data.map((acc: any) => ({
+        providerId: acc.providerId,
+        createdAt: new Date(acc.createdAt).toLocaleDateString(),
+        Icon: acc.providerId === "instagram" ? Instagram : Twitter
+      })));
+    } catch (error) {
+      console.error("Error fetching connected accounts:", error);
+    }
+  }
+
   const removeInterest = (tag: string) => setUserInterests((p) => p.filter((t) => t !== tag));
 
   const handleAddFromInput = () => {
     addInterest(input);
     setInput('');
   };
+
+  useEffect(() => {
+    if (session) {
+      getMyAccounts();
+    }
+  }, [session]);
 
   return (
     <div className="min-h-screen bg-background px-6 py-10">
@@ -147,15 +201,15 @@ export default function ProfilePage() {
           <h2 className="text-lg font-semibold mb-4">Connected Accounts</h2>
 
           <div className="space-y-3">
-            {accounts.map((acc, i) => (
+            {accounts.map((acc : any, i : any) => (
               <div
                 key={i}
                 className="flex items-center justify-between rounded-[16px] border border-border px-4 py-3 hover:bg-[#E8F5E9]/40 transition">
                 <div className="flex items-center gap-3">
-                  <acc.icon className="h-5 w-5 text-[#4CAF50]" />
+                  <acc.Icon className="h-5 w-5 text-[#4CAF50]" />
                   <div>
-                    <p className="text-sm font-medium">{acc.platform}</p>
-                    <p className="text-xs text-muted-foreground">{acc.username}</p>
+                    <p className="text-sm font-medium">{acc.providerId}</p>
+                    <p className="text-xs text-muted-foreground">{acc.createdAt}</p>
                   </div>
                 </div>
                 <button className="text-xs text-red-500 hover:underline">Disconnect</button>
@@ -206,7 +260,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-3">
-                <button className="w-full flex items-center justify-between rounded-[16px] border px-4 py-3 hover:bg-[#E8F5E9] transition">
+                <button onClick={handleLinkInstagram} className="w-full flex items-center justify-between rounded-[16px] border px-4 py-3 hover:bg-[#E8F5E9] transition">
                   <div className="flex items-center gap-3">
                     <Instagram className="h-5 w-5 text-[#E1306C]" />
                     <span className="text-sm font-medium">Instagram</span>
@@ -214,7 +268,7 @@ export default function ProfilePage() {
                   <span className="text-xs text-muted-foreground">Connect</span>
                 </button>
 
-                <button className="w-full flex items-center justify-between rounded-[16px] border px-4 py-3 hover:bg-[#E8F5E9] transition">
+                <button onClick={handleLinkTwitter} className="w-full flex items-center justify-between rounded-[16px] border px-4 py-3 hover:bg-[#E8F5E9] transition">
                   <div className="flex items-center gap-3">
                     <Twitter className="h-5 w-5 text-[#1DA1F2]" />
                     <span className="text-sm font-medium">Twitter</span>

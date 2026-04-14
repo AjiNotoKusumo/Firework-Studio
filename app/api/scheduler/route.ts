@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     // 2. Publish to QStash
     const result = await qstashClient.publishJSON({
       // IMPORTANT: This is the URL of the WORKER we will build in Step 6
-      url: "http://localtest.me:3000/api/metrics/twitter",
+      url: "https://operator-retirement-stage-treatments.trycloudflare.com/api/metrics/twitter",
       
       delay: delayInSeconds,
       

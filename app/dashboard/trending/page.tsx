@@ -83,7 +83,8 @@ export default function TrendingPage() {
       }));
 
       setHashtags(formattedHashtags);
-      setPosts(formattedPosts);
+      // setPosts(formattedPosts);
+      setPosts((prev) => [...prev, ...formattedPosts]);
     } catch (err) {
       console.error('Error fetching data:', err);
     } finally {
@@ -125,8 +126,8 @@ export default function TrendingPage() {
       }));
 
       setTwitterHashtags(formattedTwitterHashtags);
-      setPosts(formattedPosts);
-      // setPosts((prev) => [...prev, ...formattedPosts]);
+      // setPosts(formattedPosts);
+      setPosts((prev) => [...prev, ...formattedPosts]);
     } catch (err) {
       console.error('Error fetching Twitter data:', err);
     } finally {

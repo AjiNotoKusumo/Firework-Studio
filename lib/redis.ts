@@ -8,4 +8,8 @@ if (!connectionUrl) {
 
 const redis = new Redis(connectionUrl);
 
+redis.on('error', (err) => {
+  console.error('ioredis error:', err.message);
+});
+
 export default redis;

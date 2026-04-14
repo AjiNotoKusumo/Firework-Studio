@@ -79,6 +79,42 @@ export default function StoryboardPreviewModal({
   const [loadingScenes, setLoadingScenes] = useState<Set<number>>(new Set());
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleDownload = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch("/api/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idea: storyboardData }), // Sending the object your API expects
+      });
+
+      if (!response.ok) throw new Error("Export failed");
+
+      // 1. Convert the response to a Blob (Binary Large Object)
+      const blob = await response.blob();
+
+      // 2. Create a temporary local URL for that blob
+      const url = window.URL.createObjectURL(blob);
+
+      // 3. Create a "ghost" anchor link and click it programmatically
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `storyboard.pdf`; // The filename
+      document.body.appendChild(link);
+      link.click();
+
+      // 4. Cleanup
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download error:", error);
+      alert("Failed to download PDF");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const fetchSceneImage = async () => {
     if (!planId) return;
@@ -562,7 +598,8 @@ export default function StoryboardPreviewModal({
                 : <>✦ Generate All Images</>}
               </button>
             </div>
-
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
             <button
               onClick={handleSaveAll}
               disabled={isSaving}
@@ -586,6 +623,31 @@ export default function StoryboardPreviewModal({
                 </>
               : <>Save</>}
             </button>
+
+            <button
+              onClick={handleDownload}
+              disabled={isExporting}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '5px 14px',
+                borderRadius: 20,
+                background: isExporting ? 'rgba(34,197,94,0.08)' : 'rgba(34,197,94,0.12)',
+                border: '1.5px solid rgba(34,197,94,0.35)',
+                color: isExporting ? '#86BFAA' : '#166534',
+                cursor: isExporting ? 'not-allowed' : 'pointer',
+                transition: 'all 0.18s',
+              }}>
+              {isExporting ?
+                <>
+                  <Spinner size={12} color="#86BFAA" /> Exporting...
+                </>
+              : <>Export</>}
+            </button>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, flexShrink: 0 }}>

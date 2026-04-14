@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useSession } from '@/lib/auth-client';
 
 const navItems = [
   { icon: Plus, label: 'Create', href: '/dashboard/posts/create', highlight: true },
@@ -18,6 +19,7 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session, isPending } = useSession();
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-card border-r border-border">
@@ -64,8 +66,8 @@ export function Sidebar() {
               <span className="text-sm font-medium text-[#2E2E2E]">JD</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">Jane Doe</p>
-              <p className="text-xs text-muted-foreground truncate">Premium Plan</p>
+              <p className="text-sm font-medium text-foreground truncate">{session?.user?.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
             </div>
           </div>
         </Link>
