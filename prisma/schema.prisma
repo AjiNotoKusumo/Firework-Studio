@@ -1,0 +1,182 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Platform {
+  tiktok
+  twitter
+  instagram
+}
+
+enum PostType {
+  video
+  carousel
+}
+
+enum PostStatus {
+  draft
+  scheduled
+  published
+}
+
+enum MediaType {
+  image 
+  video
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  interests     String[]
+  onboardingComplete Boolean @default(false)
+  sessions      Session[]
+  accounts      Account[]
+  posts         Post[]
+  savePosts     SavedPost[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model SoundEffect {
+  id          String   @id @default(uuid())
+  name        String?
+  url         String?
+  description String?
+  category    String?
+  embedding   Unsupported("vector(768)")?
+}
+
+model Post {
+  id            String   @id @default(uuid())
+  userId        String
+
+  caption       String?
+  hashtags      String[] @default([]) // simple and useful
+
+
+  postType      PostType @default(carousel)
+  platform      Platform 
+  status        PostStatus @default(draft)
+  qstashId      String?
+  twitterId     String?
+  instagramId   String?
+  tiktokId      String?
+
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  media         PostMedia[]
+  planning      Planning[]
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PostMedia {
+  id        String   @id @default(uuid())
+  postId    String
+
+  url       String
+  type      MediaType @default(image)
+  order     Int
+
+  createdAt DateTime @default(now())
+
+  post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model SavedPost {
+  id        String   @id @default(uuid())
+  userId        String
+  postData   Json
+  createdAt DateTime @default(now())
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Planning {
+  id           String   @id @default(uuid())
+  postId       String
+  concept      Json
+  globalStyle  Json
+  structure    String
+  scenes       Scene[]
+
+  post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Scene {
+  id           String   @id @default(uuid())
+  planningId   String
+  sceneNumber  Int
+  scene        Json
+
+  planning      Planning @relation(fields: [planningId ], references: [id], onDelete: Cascade)
+}
+

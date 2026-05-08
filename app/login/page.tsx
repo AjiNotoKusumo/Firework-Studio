@@ -4,11 +4,16 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import { authClient } from '@/lib/auth-client';
+import Toastify from 'toastify-js';
 
 const sideImages = [
   'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600',
   'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600',
+  'https://gdb.voanews.com/01000000-0aff-0242-4528-08dc018b3acd_cx0_cy10_cw0_w1080_h608.jpg',
+  'https://media.licdn.com/dms/image/sync/v2/D4E27AQHKxS5Tx4BdkQ/articleshare-shrink_800/articleshare-shrink_800/0/1725261177469?e=2147483647&v=beta&t=CU3j-cuxXRPf5CiH6yL5pu07AIUh1SraJ24b-ofc4Z0',
+  'https://www.lombokjourney.com/wp-content/uploads/2024/11/danau-biru-lombok-tengah.jpeg',
+  'https://cdn.wionews.com/sites/default/files/2022/12/20/319667-viral-lionel-messi-posts-pictures-sleeping-with-fifa-world-cup-trophy.jpg',
 ];
 
 export default function LoginPage() {
@@ -23,6 +28,62 @@ export default function LoginPage() {
       [e.target.name]: e.target.value,
     });
   };
+
+  const twitterSignIn = async () => {
+    const data = await authClient.signIn.social({
+      provider: 'twitter',
+      callbackURL: '/',
+      newUserCallbackURL: '/onboarding',
+    });
+  };
+
+  const tiktokSignIn = async () => {
+    const data = await authClient.signIn.social({
+      provider: 'tiktok',
+      callbackURL: '/',
+      newUserCallbackURL: '/onboarding',
+    });
+  };
+
+  const instagramSignIn = async () => {
+    const data = await authClient.signIn.oauth2({
+      providerId: 'instagram',
+      callbackURL: '/',
+      newUserCallbackURL: '/onboarding',
+    })
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    try {
+      const { data, error } = await authClient.signIn.email({
+          email: form.email, // required
+          password: form.password, // required
+          callbackURL: `${process.env.NEXT_PUBLIC_BASE_URL}/`,
+      });
+
+      if (error) {
+        throw { message: error.message || 'Something went wrong', status: error.status || 500 }
+      }
+    } catch (error) {
+      let err = error as { message: string, status: number }
+      Toastify({
+        text: `${err.message || 'Login failed'}`,
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "top", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "#FF8A8A",
+          color: "#2E2E2E",
+          borderRadius: "12px", 
+          border: "1px solid rgba(46, 111, 64, 0.1)"
+        },
+      }).showToast();
+    }
+  }
 
   return (
     <div className="relative min-h-screen bg-background overflow-hidden flex items-center justify-center px-6">
@@ -46,8 +107,8 @@ export default function LoginPage() {
       {/* 🖼️ Floating Image Strip */}
       <div className="hidden lg:flex absolute inset-y-0 left-0 w-1/3 items-center overflow-hidden">
         <motion.div
-          animate={{ y: ['100%', '-100%'] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+          animate={{ y: ['0%', '-100%'] }}
+          transition={{ duration: 50, repeat: Infinity, ease: 'linear' }}
           className="flex flex-col">
           {[...sideImages, ...sideImages].map((src, i) => (
             <div
@@ -62,8 +123,8 @@ export default function LoginPage() {
       {/* 🖼️ Right side strip */}
       <div className="hidden lg:flex absolute inset-y-0 right-0 w-1/3 items-center overflow-hidden justify-end">
         <motion.div
-          animate={{ y: ['-100%', '100%'] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+          animate={{ y: ['0%', '100%'] }}
+          transition={{ duration: 50, repeat: Infinity, ease: 'linear' }}
           className="flex flex-col">
           {[...sideImages, ...sideImages].map((src, i) => (
             <div
@@ -118,20 +179,32 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            <button className="w-full mt-2 flex items-center justify-center gap-2 rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] transition-all">
+            <button className="w-full mt-2 flex items-center justify-center gap-2 rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] hover:scale-110 transition-all">
               Login
             </button>
           </form>
 
-          <button className="w-full mt-2 flex items-center justify-between rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] transition-all">
-            <span className="ml-20">Login by Instagram</span>
-            <Image src="/instagram.jpeg" alt="Instagram Logo" width={20} height={20} className="mr-22" />
-          </button>
+          <div className="justify-center text-center mt-3">
+            <p className="text-sm">Or continue with</p>
+          </div>
 
-          <button className="w-full mt-2 flex items-center justify-between rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] transition-all">
-            <span className="ml-26">Login by Twitter</span>
-            <Image src="/twitter.jpeg" alt="Twitter Logo" width={20} height={20} className="mr-22" />
-          </button>
+          <div className="flex gap-3">
+            <button onClick={instagramSignIn} className="w-full mt-2 flex items-center justify-center rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] hover:scale-110 transition-all">
+              <Image src="/instagram.jpeg" alt="Instagram Logo" width={25} height={25} />
+            </button>
+
+            <button
+              onClick={twitterSignIn}
+              className="w-full mt-2 flex items-center justify-center rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] hover:scale-110 transition-all">
+              <Image src="/twitter.jpeg" alt="Twitter Logo" width={25} height={25} />
+            </button>
+
+            <button
+              onClick={tiktokSignIn}
+              className="w-full mt-2 flex items-center justify-center rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] hover:scale-110 transition-all">
+              <Image src="/tiktok.png" alt="Twitter Logo" width={25} height={25} />
+            </button>
+          </div>
 
           <p className="text-sm text-center text-muted-foreground mt-6">
             Don’t have an account?{' '}

@@ -1,71 +1,114 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Users, Heart, ImageIcon, Eye, TrendingUp } from "lucide-react"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { ChartCard } from "@/components/dashboard/chart-card"
 import { cn } from "@/lib/utils"
+import { authClient } from '@/lib/auth-client';
 
-const tabs = ["Instagram", "Twitter"]
+type PlatformMetrics = {
+  followers: number
+  likes: number
+  posts: number
+  views: number
 
-const metricsData = {
-  Instagram: {
-    followers: "24,521",
-    followersChange: "+8.2% from last month",
-    likes: "156.2K",
-    likesChange: "+12.5% from last week",
-    posts: "342",
-    postsChange: "+5 this week",
-    views: "1.2M",
-    viewsChange: "+18% from last month",
-    followerHistory: [
-      { name: "Jan", value: 18200 },
-      { name: "Feb", value: 19500 },
-      { name: "Mar", value: 20800 },
-      { name: "Apr", value: 21900 },
-      { name: "May", value: 23100 },
-      { name: "Jun", value: 24521 },
-    ],
-    viewsHistory: [
-      { name: "Jan", value: 820000 },
-      { name: "Feb", value: 890000 },
-      { name: "Mar", value: 950000 },
-      { name: "Apr", value: 1020000 },
-      { name: "May", value: 1100000 },
-      { name: "Jun", value: 1200000 },
-    ],
-  },
-  Twitter: {
-    followers: "12,845",
-    followersChange: "+5.8% from last month",
-    likes: "89.4K",
-    likesChange: "+9.2% from last week",
-    posts: "892",
-    postsChange: "+12 this week",
-    views: "2.4M",
-    viewsChange: "+24% from last month",
-    followerHistory: [
-      { name: "Jan", value: 9800 },
-      { name: "Feb", value: 10200 },
-      { name: "Mar", value: 10800 },
-      { name: "Apr", value: 11400 },
-      { name: "May", value: 12100 },
-      { name: "Jun", value: 12845 },
-    ],
-    viewsHistory: [
-      { name: "Jan", value: 1400000 },
-      { name: "Feb", value: 1600000 },
-      { name: "Mar", value: 1850000 },
-      { name: "Apr", value: 2000000 },
-      { name: "May", value: 2200000 },
-      { name: "Jun", value: 2400000 },
-    ],
-  },
+  followersChange?: string
+  likesChange?: string
+  postsChange?: string
+  viewsChange?: string
+
+  followerHistory: { name: string; value: number }[]
+  viewsHistory: { name: string; value: number }[]
+
+  avgEngagement?: number
+  bestPost?: {
+    id: string
+    score: number
+  }
+
+  bestDay?: string
+  peakTime?: string
+  topFormat?: string
 }
 
+
 export default function MetricsPage() {
-  const [activeTab, setActiveTab] = useState<"Instagram" | "Twitter">("Instagram")
-  const data = metricsData[activeTab]
+  const [activeTab, setActiveTab] = useState<string>("Twitter")
+  const [tabs, setTabs] = useState<string[]>([])
+
+  const [tikTokMetrics, setTikTokMetrics] = useState<any | null>(null)
+  const [twitterMetrics, setTwitterMetrics] = useState<any | null>(null)
+  const [instagramMetrics, setInstagramMetrics] = useState<any | null>(null)
+
+  const metrics = activeTab === "Twitter" ? twitterMetrics : activeTab === "Instagram" ? instagramMetrics : tikTokMetrics
+
+  // ---------------- FETCHERS ----------------
+
+  const getMyAccounts = async () => {
+    try {
+      const { data, error } = await authClient.listAccounts();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      setTabs(data.filter((acc: any) => acc.providerId !== "credential" ).map((acc: any) => acc.providerId[0].toUpperCase() + acc.providerId.slice(1)));
+    } catch (error) {
+      console.error("Error fetching connected accounts:", error);
+    }
+  }
+
+  const fetchMetricsTwitter = async () => {
+    try {
+      const res = await fetch("/api/metrics/twitter")
+      if (!res.ok) throw new Error("Failed to fetch Twitter metrics")
+
+      const data: any = await res.json()
+      console.log(data.avgEngagement)
+      setTwitterMetrics(data)
+    } catch (err) {
+      console.error("Twitter fetch error:", err)
+    }
+  }
+
+  const fetchMetricsInstagram = async () => {
+    try {
+      const res = await fetch("/api/metrics/instagram")
+      if (!res.ok) throw new Error("Failed to fetch Instagram metrics")
+
+      const data: any = await res.json()
+      setInstagramMetrics(data)
+    } catch (err) {
+      console.error("Instagram fetch error:", err)
+    }
+  }
+
+  const fetchMetricsTikTok = async () => {
+    try {
+      const res = await fetch("/api/metrics/tiktok")
+      if (!res.ok) throw new Error("Failed to fetch TikTok metrics")
+
+      const data: any = await res.json()
+      console.log(data)
+      setTikTokMetrics(data)
+    } catch (err) {
+      console.error("TikTok fetch error:", err)
+    }
+  }
+  
+  // ---------------- EFFECT ----------------
+
+  useEffect(() => {
+    getMyAccounts();
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === "Twitter") fetchMetricsTwitter()
+    if (activeTab === "Instagram") fetchMetricsInstagram()
+    if (activeTab === "Tiktok") fetchMetricsTikTok()
+  }, [activeTab])
+
+  // ---------------- UI ----------------
 
   return (
     <div className="p-8">
@@ -74,7 +117,7 @@ export default function MetricsPage() {
         {tabs.map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab as "Instagram" | "Twitter")}
+            onClick={() => setActiveTab(tab)}
             className={cn(
               "rounded-[16px] px-6 py-2.5 text-sm font-medium transition-all",
               activeTab === tab
@@ -91,32 +134,32 @@ export default function MetricsPage() {
       <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Followers"
-          value={data.followers}
-          change={data.followersChange}
+          value={metrics?.followers ?? "-"}
+          change={metrics?.followersChange ?? ""}
           changeType="positive"
           icon={Users}
           iconBgColor="bg-[#A7D7A0]/30"
         />
         <StatCard
           title="Total Likes"
-          value={data.likes}
-          change={data.likesChange}
+          value={metrics?.likes ?? "-"}
+          change={metrics?.likesChange ?? ""}
           changeType="positive"
           icon={Heart}
           iconBgColor="bg-[#CFEFFF]/50"
         />
         <StatCard
           title="Posts"
-          value={data.posts}
-          change={data.postsChange}
+          value={metrics?.posts ?? "-"}
+          change={metrics?.postsChange ?? ""}
           changeType="positive"
           icon={ImageIcon}
           iconBgColor="bg-[#FFD54F]/30"
         />
         <StatCard
           title="Total Views"
-          value={data.views}
-          change={data.viewsChange}
+          value={metrics?.views ?? "-"}
+          change={metrics?.viewsChange ?? ""}
           changeType="positive"
           icon={Eye}
           iconBgColor="bg-[#E8F5E9]"
@@ -126,15 +169,15 @@ export default function MetricsPage() {
       {/* Charts */}
       <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ChartCard
-          title="Followers Over Time"
-          subtitle={`${activeTab} follower growth over 6 months`}
-          data={data.followerHistory}
+          title="Engagement Over Time"
+          subtitle={`${activeTab} engagement growth`}
+          data={metrics?.engagementHistory ?? []}
           type="area"
         />
         <ChartCard
           title="Views Over Time"
-          subtitle={`${activeTab} total views over 6 months`}
-          data={data.viewsHistory}
+          subtitle={`${activeTab} views`}
+          data={metrics?.viewsHistory ?? []}
           type="area"
         />
       </section>
@@ -147,26 +190,44 @@ export default function MetricsPage() {
               <TrendingUp className="h-5 w-5 text-[#4CAF50]" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-foreground">Growth Summary</h3>
-              <p className="text-sm text-muted-foreground">Your {activeTab} performance overview</p>
+              <h3 className="text-lg font-semibold text-foreground">
+                Growth Summary
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Your {activeTab} performance overview
+              </p>
             </div>
           </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="rounded-[16px] bg-[#E8F5E9] p-4">
               <p className="text-sm text-muted-foreground">Best Day</p>
-              <p className="text-xl font-semibold text-foreground mt-1">Saturday</p>
+              <p className="text-xl font-semibold mt-1">
+                {metrics?.bestDay ?? "-"}
+              </p>
             </div>
+
             <div className="rounded-[16px] bg-[#CFEFFF]/50 p-4">
               <p className="text-sm text-muted-foreground">Peak Time</p>
-              <p className="text-xl font-semibold text-foreground mt-1">6-8 PM</p>
+              <p className="text-xl font-semibold mt-1">
+                {metrics?.peakTime ?? "-"}
+              </p>
             </div>
+
             <div className="rounded-[16px] bg-[#FFD54F]/20 p-4">
-              <p className="text-sm text-muted-foreground">Avg. Engagement</p>
-              <p className="text-xl font-semibold text-foreground mt-1">4.8%</p>
+              <p className="text-sm text-muted-foreground">Engagement Rate</p>
+              <p className="text-xl font-semibold mt-1">
+                {metrics?.avgEngagement
+                  ? `${metrics.avgEngagement}`
+                  : "-"}
+              </p>
             </div>
+
             <div className="rounded-[16px] bg-[#A7D7A0]/20 p-4">
-              <p className="text-sm text-muted-foreground">Top Format</p>
-              <p className="text-xl font-semibold text-foreground mt-1">Carousels</p>
+              <p className="text-sm text-muted-foreground">Top Post</p>
+              <p className="text-xl font-semibold mt-1">
+                {metrics?.topFormat ?? "-"}
+              </p>
             </div>
           </div>
         </div>

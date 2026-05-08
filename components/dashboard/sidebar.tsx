@@ -1,22 +1,25 @@
 'use client';
 
-import { BarChart3, TrendingUp, Bookmark, Calendar, PenSquare, Leaf, Plus } from 'lucide-react';
+import { BarChart3, TrendingUp, Bookmark, Calendar, PenSquare, Leaf, Plus, Flame } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useSession } from '@/lib/auth-client';
 
 const navItems = [
   { icon: Plus, label: 'Create', href: '/dashboard/posts/create', highlight: true },
   { icon: BarChart3, label: 'Metrics', href: '/dashboard/metrics' },
-  { icon: TrendingUp, label: 'Trending', href: '/dashboard/trending' },
+  { icon: TrendingUp, label: 'Trending', href: '/dashboard/trending' }, // 👈 added here
   { icon: Bookmark, label: 'Saved', href: '/dashboard/saved' },
   { icon: PenSquare, label: 'Planning', href: '/dashboard/planning' },
+  { icon: Flame, label: 'Redzone', href: '/dashboard/redzone' },
   { icon: Calendar, label: 'Calendar', href: '/dashboard/calendar' },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session, isPending } = useSession();
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-card border-r border-border">
@@ -57,17 +60,17 @@ export function Sidebar() {
         </nav>
 
         {/* User Section */}
-        <div className="border-t border-border p-4">
+        <Link href="/dashboard/profile" className="border-t border-border p-4">
           <div className="flex items-center gap-3 rounded-[16px] bg-[#E8F5E9] px-4 py-3">
             <div className="h-9 w-9 rounded-full bg-[#A7D7A0] flex items-center justify-center">
-              <span className="text-sm font-medium text-[#2E2E2E]">JD</span>
+              <span className="text-sm font-medium text-[#2E2E2E]">{session?.user?.name?.slice(0, 2).toUpperCase()}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">Jane Doe</p>
-              <p className="text-xs text-muted-foreground truncate">Premium Plan</p>
+              <p className="text-sm font-medium text-foreground truncate">{session?.user?.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{session?.user?.email}</p>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
     </aside>
   );

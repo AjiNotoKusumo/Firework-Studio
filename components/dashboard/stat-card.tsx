@@ -2,9 +2,9 @@ import { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface StatCardProps {
-  title: string
-  value: string
-  change: string
+  title: any
+  value: any
+  change: any
   changeType: "positive" | "negative" | "neutral"
   icon: LucideIcon
   iconBgColor?: string

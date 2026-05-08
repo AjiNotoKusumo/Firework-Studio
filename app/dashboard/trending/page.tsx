@@ -1,101 +1,144 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PostCard } from '@/components/dashboard/post-card';
 import { ChartCard } from '@/components/dashboard/chart-card';
 import { TrendingPostModal } from '@/components/dashboard/trending-post-modal';
+import { TrendingPost } from '@/types';
 
-const hashtagData = {
-  instagram: [
-    { name: '#nature', value: 2400 },
-    { name: '#travel', value: 1800 },
-    { name: '#sunset', value: 1500 },
-    { name: '#photo', value: 1200 },
-    { name: '#explore', value: 900 },
-  ],
-  twitter: [
-    { name: '#trending', value: 3200 },
-    { name: '#viral', value: 2100 },
-    { name: '#news', value: 1800 },
-    { name: '#tech', value: 1400 },
-    { name: '#daily', value: 1100 },
-  ],
+// ---------------- TYPES ----------------
+type Hashtag = { name: string; value: number };
+type ApiPost = {
+  caption: string;
+  ownerFullName: string;
+  ownerUsername: string;
+  url: string;
+  commentsCount: number;
+  likesCount: number;
+  timestamp: string;
+  shortCode: string;
+  displayUrl?: string;
 };
 
-const trendingPosts = [
-  {
-    id: 'trending-1',
-    imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=400&fit=crop',
-    caption: "Mountain sunrise vibes - nature's alarm clock never disappoints",
-    likes: 24500,
-    comments: 1820,
-    shares: 3200,
-    status: 'trending' as const,
-    platform: 'instagram' as const,
-    author: { name: 'NatureExplorer', avatar: '' },
-  },
-  {
-    id: 'trending-2',
-    imageUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=400&fit=crop',
-    caption: 'Forest therapy session - sometimes all you need is trees and silence',
-    likes: 18200,
-    comments: 945,
-    shares: 2100,
-    status: 'growing' as const,
-    platform: 'twitter' as const,
-    author: { name: 'WildernessWanderer', avatar: '' },
-  },
-  {
-    id: 'trending-3',
-    imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
-    caption: "Ocean waves and salty air - the best therapy money can't buy",
-    likes: 31200,
-    comments: 2340,
-    shares: 4500,
-    status: 'trending' as const,
-    platform: 'instagram' as const,
-    author: { name: 'CoastalDreamer', avatar: '' },
-  },
-  {
-    id: 'trending-4',
-    imageUrl: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=400&h=400&fit=crop',
-    caption: "Golden hour in the meadows - nature's perfect lighting",
-    likes: 15600,
-    comments: 780,
-    shares: 1400,
-    status: 'stable' as const,
-    platform: 'twitter' as const,
-    author: { name: 'SunsetChaser', avatar: '' },
-  },
-  {
-    id: 'trending-5',
-    imageUrl: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=400&fit=crop',
-    caption: 'Valley views that take your breath away - hiking is worth it',
-    likes: 22300,
-    comments: 1560,
-    shares: 2800,
-    status: 'trending' as const,
-    platform: 'instagram' as const,
-    author: { name: 'TrailBlazer', avatar: '' },
-  },
-  {
-    id: 'trending-6',
-    imageUrl: 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=400&h=400&fit=crop',
-    caption: 'Peak performance starts with peak views - morning motivation',
-    likes: 19800,
-    comments: 1120,
-    shares: 1900,
-    status: 'growing' as const,
-    platform: 'twitter' as const,
-    author: { name: 'MountainMind', avatar: '' },
-  },
-];
+// ---------------- HELPERS ----------------
+const getStatus = (likes: number, comments: number): TrendingPost['status'] => {
+  const score = likes + comments * 2;
+  if (score > 20000) return 'trending';
+  if (score > 8000) return 'growing';
+  return 'stable';
+};
+const buildImageUrl = (shortCode: string) => `https://www.instagram.com/p/${shortCode}/media/?size=l`;
 
-type TrendingPost = (typeof trendingPosts)[number];
-
+// ---------------- COMPONENT ----------------
 export default function TrendingPage() {
+  const [hashtags, setHashtags] = useState<Hashtag[]>([]);
+  const [posts, setPosts] = useState<TrendingPost[]>([]);
   const [selectedPost, setSelectedPost] = useState<TrendingPost | null>(null);
   const [savedPosts, setSavedPosts] = useState<string[]>([]);
+  const [twitterHashtags, setTwitterHashtags] = useState<Hashtag[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function fetchDataInstagram() {
+    try {
+      setLoading(true);
+      const interests: string[] = []; // user interests can be added later
+
+      const [hashtagsRes, postsRes] = await Promise.all([
+        fetch('/api/hashtags', {
+          method: 'POST',
+          body: JSON.stringify({ interests }),
+          headers: { 'Content-Type': 'application/json' },
+        }),
+        fetch('/api/trending/instagram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ]);
+
+      const hashtagsData = await hashtagsRes.json().catch(() => ({ hashtags: [] }));
+      const postsDataRaw = await postsRes.json();
+      const postsData: ApiPost[] = Array.isArray(postsDataRaw) ? postsDataRaw : [];
+
+      // ---------------- HASHTAGS ----------------
+      const formattedHashtags: Hashtag[] = (hashtagsData.hashtags || [])
+        .map((tag: any) => ({
+          name: tag.name,
+          value: tag.value,
+        }))
+        .sort((a: any, b: any) => b.value - a.value)
+        .slice(0, 10);
+
+      // ---------------- POSTS ----------------
+      const formattedPosts: TrendingPost[] = (postsData || []).map((post: ApiPost, i: number) => ({
+        id: post.shortCode || `post-${i}`,
+        imageUrl: post.displayUrl || buildImageUrl(post.shortCode),
+        caption: post.caption || '',
+        likes: post.likesCount || 0,
+        comments: post.commentsCount || 0,
+        shares: Math.floor((post.likesCount || 0) * 0.1),
+        status: getStatus(post.likesCount || 0, post.commentsCount || 0),
+        platform: 'instagram',
+        author: { name: post.ownerUsername || 'unknown', avatar: '' },
+        url: post.url || '',
+      }));
+
+      setHashtags(formattedHashtags);
+      // setPosts(formattedPosts);
+      setPosts((prev) => [...prev, ...formattedPosts]);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchDataTwitter() {
+    try {
+      setLoading(true);
+
+      const [hashtagsRes, postsRes] = await Promise.all([
+        fetch('/api/hashtags/twitter'),
+        fetch('/api/trending/twitter'),
+      ]);
+
+      const hashtagsData = await hashtagsRes.json().catch(() => ({ hashtags: [] }));
+      const postsData = await postsRes.json().catch(() => []);
+
+      // ---------------- TWITTER HASHTAGS ----------------
+      const formattedTwitterHashtags: Hashtag[] = (hashtagsData.hashtags || [])
+        .map((tag: any) => ({ name: tag.name.replace(/^#/, ''), value: tag.value || 0 }))
+        .slice(0, 20); // pick top 20 trends
+
+      // ---------------- TWITTER POSTS ----------------
+      const formattedPosts: TrendingPost[] = (postsData || []).map((post: any, i: number) => ({
+        id: post.id || `tweet-${i}`,
+        imageUrl:
+          post.media?.[0] ||
+          'https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg',
+        caption: post.text || '',
+        likes: post.likesCount || 0,
+        comments: post.replyCount || 0,
+        shares: post.retweetCount || 0,
+        status: getStatus(post.likesCount || 0, post.replyCount || 0),
+        platform: 'twitter',
+        author: { name: post.author?.userName || 'unknown', avatar: '' },
+        url: post.url || '',
+      }));
+
+      setTwitterHashtags(formattedTwitterHashtags);
+      // setPosts(formattedPosts);
+      setPosts((prev) => [...prev, ...formattedPosts]);
+    } catch (err) {
+      console.error('Error fetching Twitter data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchDataTwitter();
+    fetchDataInstagram();
+  }, []);
 
   const handleSavePost = (postId: string) => {
     setSavedPosts((prev) => (prev.includes(postId) ? prev.filter((id) => id !== postId) : [...prev, postId]));
@@ -103,42 +146,59 @@ export default function TrendingPage() {
 
   return (
     <div className="p-8">
-      {/* Hashtag Charts */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      {/* HASHTAGS */}
+      <section className="mb-8 flex flex-col gap-6">
         <ChartCard
-          title="Instagram Top Hashtags"
-          subtitle="Most engaging hashtags this week"
-          data={hashtagData.instagram}
-          type="area"
-        />
-        <ChartCard
-          title="Twitter Top Hashtags"
-          subtitle="Most engaging hashtags this week"
-          data={hashtagData.twitter}
-          type="area"
+          title="Top Instagram Hashtags"
+          subtitle="Live Instagram hashtag popularity"
+          data={hashtags}
+          type="bar"
         />
       </section>
 
-      {/* Trending Posts Feed */}
-      <section>
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-foreground">Trending Posts</h2>
-          <p className="text-sm text-muted-foreground mt-1">Top performing content across platforms</p>
-        </div>
+      {/* ---------------- TWITTER HASHTAGS FLEX GRID ---------------- */}
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold mb-2 text-foreground">Top Twitter Hashtags</h2>
+        <p className="text-sm text-muted-foreground mb-4">Live trending hashtags</p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {trendingPosts.map((post) => (
-            <button
-              key={post.id}
-              onClick={() => setSelectedPost(post)}
-              className="text-left transition-transform hover:scale-[1.02]">
-              <PostCard {...post} />
-            </button>
+        <div className="flex flex-wrap gap-3">
+          {twitterHashtags.map((tag) => (
+            <div
+              key={tag.name}
+              className="inline-flex items-center justify-center rounded-lg 
+                   bg-gradient-to-r from-purple-200 via-pink-200 to-red-200 
+                   font-semibold text-center text-base sm:text-lg 
+                   px-12 py-2 break-words whitespace-nowrap max-w-[500px]
+                   cursor-pointer hover:scale-105 transition-transform duration-200 ease-in-out">
+              #{tag.name}
+            </div>
           ))}
         </div>
       </section>
 
-      {/* Post Modal */}
+      {/* POSTS */}
+      <section>
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-foreground">Trending Posts</h2>
+          <p className="text-sm text-muted-foreground mt-1">Live trending content based on your interests</p>
+        </div>
+
+        {loading ?
+          <div className="text-sm text-muted-foreground">Loading...</div>
+        : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {posts.map((post, index) => (
+              <button
+                key={`post-${post.id}-${index}`}
+                onClick={() => setSelectedPost(post)}
+                className="text-left transition-transform hover:scale-[1.02]">
+                <PostCard {...post} />
+              </button>
+            ))}
+          </div>
+        }
+      </section>
+
+      {/* MODAL */}
       <TrendingPostModal
         post={selectedPost}
         open={!!selectedPost}
