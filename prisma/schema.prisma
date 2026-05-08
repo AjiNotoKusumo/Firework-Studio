@@ -13,6 +13,7 @@ datasource db {
 }
 
 enum Platform {
+  tiktok
   twitter
   instagram
 }
@@ -123,6 +124,7 @@ model Post {
   qstashId      String?
   twitterId     String?
   instagramId   String?
+  tiktokId      String?
 
   scheduledAt   DateTime?
   publishedAt   DateTime?

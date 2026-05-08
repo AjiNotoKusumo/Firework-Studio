@@ -76,6 +76,10 @@ export default function CalendarPage() {
         const finalDateTime = new Date(`${newDate}T${selectedTime}`);
         const scheduledAtUTC = finalDateTime.toISOString();
 
+        if(finalDateTime < new Date()) {
+          throw new Error('Selected time must be in the future');
+        }
+
         const response = await fetch('/api/scheduler', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -105,7 +109,12 @@ export default function CalendarPage() {
         info.revert() // Revert the event position if time selection was cancelled or invalid
       }
     } catch (error) {
-      console.error("Failed to update post date:", error)
+      Swal.fire({
+        title: 'Error',
+        text: (error as Error).message || 'Failed to update post date. Please try again.',
+        icon: 'error',
+        background: '#EDF5EB',
+      });
       info.revert() // Revert the event position on error
     }
   
@@ -120,12 +129,16 @@ export default function CalendarPage() {
       ? "#A7D7A0" 
       : post.platform === "instagram" 
         ? "#E1306C" 
-        : "#CFEFFF",
+        : post.platform === "tiktok"
+          ? "#000000"
+          : "#CFEFFF",
     borderColor: post.status === "published" 
       ? "#A7D7A0" 
       : post.platform === "instagram" 
         ? "#E1306C" 
-        : "#CFEFFF",
+        : post.platform === "tiktok"
+          ? "#000000"
+          : "#CFEFFF",
     textColor: post.status === "published" || post.platform === "twitter" ? "#2E2E2E" : "#ffffff"
   }))
 
@@ -216,6 +229,10 @@ export default function CalendarPage() {
         <div className="flex items-center gap-2">
           <div className="h-4 w-4 rounded-full bg-[#CFEFFF]" />
           <span className="text-sm text-muted-foreground">Twitter Scheduled</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 rounded-full bg-[#000000]" />
+          <span className="text-sm text-muted-foreground">TikTok Scheduled</span>
         </div>
       </div>
     </div>

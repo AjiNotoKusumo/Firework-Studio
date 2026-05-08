@@ -5,6 +5,7 @@ import { Users, Heart, ImageIcon, Eye, TrendingUp } from "lucide-react"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { ChartCard } from "@/components/dashboard/chart-card"
 import { cn } from "@/lib/utils"
+import { authClient } from '@/lib/auth-client';
 
 type PlatformMetrics = {
   followers: number
@@ -31,18 +32,31 @@ type PlatformMetrics = {
   topFormat?: string
 }
 
-const tabs = ["Instagram", "Twitter"] as const
 
 export default function MetricsPage() {
-  const [activeTab, setActiveTab] = useState<"Instagram" | "Twitter">("Twitter")
+  const [activeTab, setActiveTab] = useState<string>("Twitter")
+  const [tabs, setTabs] = useState<string[]>([])
 
+  const [tikTokMetrics, setTikTokMetrics] = useState<any | null>(null)
   const [twitterMetrics, setTwitterMetrics] = useState<any | null>(null)
   const [instagramMetrics, setInstagramMetrics] = useState<any | null>(null)
 
-  const metrics =
-    activeTab === "Twitter" ? twitterMetrics : instagramMetrics
+  const metrics = activeTab === "Twitter" ? twitterMetrics : activeTab === "Instagram" ? instagramMetrics : tikTokMetrics
 
   // ---------------- FETCHERS ----------------
+
+  const getMyAccounts = async () => {
+    try {
+      const { data, error } = await authClient.listAccounts();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      setTabs(data.filter((acc: any) => acc.providerId !== "credential" ).map((acc: any) => acc.providerId[0].toUpperCase() + acc.providerId.slice(1)));
+    } catch (error) {
+      console.error("Error fetching connected accounts:", error);
+    }
+  }
 
   const fetchMetricsTwitter = async () => {
     try {
@@ -69,11 +83,29 @@ export default function MetricsPage() {
     }
   }
 
+  const fetchMetricsTikTok = async () => {
+    try {
+      const res = await fetch("/api/metrics/tiktok")
+      if (!res.ok) throw new Error("Failed to fetch TikTok metrics")
+
+      const data: any = await res.json()
+      console.log(data)
+      setTikTokMetrics(data)
+    } catch (err) {
+      console.error("TikTok fetch error:", err)
+    }
+  }
+  
   // ---------------- EFFECT ----------------
+
+  useEffect(() => {
+    getMyAccounts();
+  }, [])
 
   useEffect(() => {
     if (activeTab === "Twitter") fetchMetricsTwitter()
     if (activeTab === "Instagram") fetchMetricsInstagram()
+    if (activeTab === "Tiktok") fetchMetricsTikTok()
   }, [activeTab])
 
   // ---------------- UI ----------------
@@ -137,9 +169,9 @@ export default function MetricsPage() {
       {/* Charts */}
       <section className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ChartCard
-          title="Followers Over Time"
-          subtitle={`${activeTab} follower growth`}
-          data={metrics?.followerHistory ?? []}
+          title="Engagement Over Time"
+          subtitle={`${activeTab} engagement growth`}
+          data={metrics?.engagementHistory ?? []}
           type="area"
         />
         <ChartCard
@@ -183,7 +215,7 @@ export default function MetricsPage() {
             </div>
 
             <div className="rounded-[16px] bg-[#FFD54F]/20 p-4">
-              <p className="text-sm text-muted-foreground">Avg Engagement</p>
+              <p className="text-sm text-muted-foreground">Engagement Rate</p>
               <p className="text-xl font-semibold mt-1">
                 {metrics?.avgEngagement
                   ? `${metrics.avgEngagement}`
@@ -192,7 +224,7 @@ export default function MetricsPage() {
             </div>
 
             <div className="rounded-[16px] bg-[#A7D7A0]/20 p-4">
-              <p className="text-sm text-muted-foreground">Top Format</p>
+              <p className="text-sm text-muted-foreground">Top Post</p>
               <p className="text-xl font-semibold mt-1">
                 {metrics?.topFormat ?? "-"}
               </p>

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Poppins } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
+import "toastify-js/src/toastify.css";
 
 const poppins = Poppins({
   subsets: ['latin'],

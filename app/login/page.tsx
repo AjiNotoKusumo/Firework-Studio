@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { authClient } from '@/lib/auth-client';
+import Toastify from 'toastify-js';
 
 const sideImages = [
   'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600',
@@ -36,12 +37,52 @@ export default function LoginPage() {
     });
   };
 
+  const tiktokSignIn = async () => {
+    const data = await authClient.signIn.social({
+      provider: 'tiktok',
+      callbackURL: '/',
+      newUserCallbackURL: '/onboarding',
+    });
+  };
+
   const instagramSignIn = async () => {
     const data = await authClient.signIn.oauth2({
       providerId: 'instagram',
       callbackURL: '/',
       newUserCallbackURL: '/onboarding',
     })
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    try {
+      const { data, error } = await authClient.signIn.email({
+          email: form.email, // required
+          password: form.password, // required
+          callbackURL: `${process.env.NEXT_PUBLIC_BASE_URL}/`,
+      });
+
+      if (error) {
+        throw { message: error.message || 'Something went wrong', status: error.status || 500 }
+      }
+    } catch (error) {
+      let err = error as { message: string, status: number }
+      Toastify({
+        text: `${err.message || 'Login failed'}`,
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "top", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "#FF8A8A",
+          color: "#2E2E2E",
+          borderRadius: "12px", 
+          border: "1px solid rgba(46, 111, 64, 0.1)"
+        },
+      }).showToast();
+    }
   }
 
   return (
@@ -156,6 +197,12 @@ export default function LoginPage() {
               onClick={twitterSignIn}
               className="w-full mt-2 flex items-center justify-center rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] hover:scale-110 transition-all">
               <Image src="/twitter.jpeg" alt="Twitter Logo" width={25} height={25} />
+            </button>
+
+            <button
+              onClick={tiktokSignIn}
+              className="w-full mt-2 flex items-center justify-center rounded-[16px] bg-[#A7D7A0] px-6 py-3 text-sm font-medium text-[#2E2E2E] hover:bg-[#8BC98B] hover:scale-110 transition-all">
+              <Image src="/tiktok.png" alt="Twitter Logo" width={25} height={25} />
             </button>
           </div>
 

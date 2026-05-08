@@ -6,7 +6,7 @@ export interface Post {
   status: 'draft' | 'scheduled' | 'published';
   scheduledAt?: string;
   publishedDate?: string;
-  platform: 'instagram' | 'twitter' ;
+  platform: 'instagram' | 'twitter' | 'tiktok';
   postType?: 'video' | 'carousel';
   strategy?: string;
   autoPost: boolean;

@@ -65,18 +65,42 @@ const generateHTML = (idea: any): string => {
           font-size: 13px;
           text-align: left;
           vertical-align: top;
-          word-break: break-word;
         }
 
         th {
           background: #f5f5f5;
         }
 
+        .summary-table td:first-child {
+          width: 120px; 
+          font-weight: bold;
+          background: #f5f5f5;
+        }
+
+        .scene-table {
+          table-layout: fixed; /* Keep this for the big table only */
+        }
+
+        .scene-table th, .scene-table td {
+          font-size: 11px; /* Slightly smaller for the wide table */
+          word-wrap: break-word;
+        }
+
+        .scene-table th:nth-child(1) { width: 30px; }   /* # */
+        .scene-table th:nth-child(2) { width: 130px; }  /* Image */
+        .scene-table th:nth-child(3) { width: 70px; }   /* Purpose */
+        .scene-table th:nth-child(4) { width: auto; }   /* Description */
+        .scene-table th:nth-child(5) { width: 60px; }   /* Time */
+        .scene-table th:nth-child(6) { width: 80px; }   /* Camera */
+        .scene-table th:nth-child(7) { width: 80px; }   /* Motion */
+        .scene-table th:nth-child(8) { width: 70px; }   /* Emotion */
+        .scene-table th:nth-child(9) { width: 80px; }   /* Sound */
+
         img {
-          width: 120px;
+          width: 100%; /* Image fills its column width */
+          max-width: 120px;
           height: auto;
-          border-radius: 8px;
-          display: block;
+          border-radius: 4px;
         }
 
         .page-break {
@@ -94,7 +118,7 @@ const generateHTML = (idea: any): string => {
       <!-- PAGE 1 -->
       <h1>🔥 Firework Idea Summary</h1>
 
-      <table>
+      <table class="summary-table">
         <tr><th>Title</th><td>${idea.concept.title}</td></tr>
         <tr><th>Hook</th><td>${idea.concept.hook}</td></tr>
         <tr><th>Visual Style</th><td>${idea.globalStyle.visualStyle}</td></tr>
@@ -107,18 +131,18 @@ const generateHTML = (idea: any): string => {
 
       <h1>🎬 Scene Breakdown</h1>
 
-      <table>
+      <table class="scene-table">
         <thead>
           <tr>
             <th>#</th>
             <th>Image</th>
             <th>Purpose</th>
             <th>Description</th>
-            <th>Time</th>
-            <th>Camera</th>
-            <th>Motion</th>
+            <th>${idea.structure.type === "video" ? "Time" : "Order"}</th>
+            <th>${idea.structure.type === "video" ? "Camera" : "Visual Focus"}</th>
+            <th>${idea.structure.type === "video" ? "Motion" : "Text Overlay"}</th>
             <th>Emotion</th>
-            <th>Sound</th>
+            <th>${idea.structure.type === "video" ? "Sound" : "Filter"}</th>
           </tr>
         </thead>
 
@@ -130,14 +154,14 @@ const generateHTML = (idea: any): string => {
               return `
                 <tr>
                   <td>${scene.sceneNumber}</td>
-                  <td><img src="${img || 'https://static.vecteezy.com/system/resources/previews/004/141/669/non_2x/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector.jpg'}" /></td>
+                  <td><img src="${img || 'https://res.cloudinary.com/djwg7ocsw/image/upload/v1776695426/no-photo-or-blank-image-icon-loading-images-or-missing-image-mark-image-not-available-or-image-coming-soon-sign-simple-nature-silhouette-in-frame-isolated-illustration-vector_1_k5ebt4.webp'}" /></td>
                   <td>${scene.purpose}</td>
                   <td>${scene.description}</td>
-                  <td>${scene.startTime}s - ${scene.endTime}s</td>
-                  <td>${scene.camera}</td>
-                  <td>${scene.motion}</td>
+                  <td>${idea.structure.type === "video" ? `${scene.startTime}s - ${scene.endTime}s` : scene.sceneNumber}</td>
+                  <td>${idea.structure.type === "video" ? scene.camera : scene.visualFocus}</td>
+                  <td>${idea.structure.type === "video" ? scene.motion : scene.textOverlay}</td>
                   <td>${scene.emotion}</td>
-                  <td>${scene.soundEffect?.name ?? "-"}</td>
+                  <td>${idea.structure.type === "video" ? scene.soundEffect?.name ?? "-" : scene.filter}</td>
                 </tr>
               `;
             })

@@ -5,6 +5,7 @@ import { Heart, MessageCircle, Share2, Bookmark, ExternalLink, Instagram, Twitte
 import { TrendingPost } from '@/types';
 import Swal from 'sweetalert2';
 import { useRouter } from 'next/navigation';
+import Toastify from 'toastify-js';
 
 interface TrendingPostModalProps {
   post: TrendingPost | null;
@@ -47,6 +48,22 @@ export function TrendingPostModal({ post, open, onOpenChange, onSave, isSaved = 
           throw new Error(errorData.message || 'Failed to save post');
         }
 
+        Toastify({
+          text: `Post removed successfully`,
+          duration: 3000,
+          newWindow: true,
+          close: true,
+          gravity: "top", // `top` or `bottom`
+          position: "right", // `left`, `center` or `right`
+          stopOnFocus: true, // Prevents dismissing of toast on hover
+          style: {
+            background: "#A7D7A0",
+            color: "#2E2E2E",
+            borderRadius: "12px", 
+            border: "1px solid rgba(46, 111, 64, 0.1)"
+          },
+        }).showToast();
+
         fetchSavedPosts?.();
         return onSave?.(post.id);
       }
@@ -62,11 +79,42 @@ export function TrendingPostModal({ post, open, onOpenChange, onSave, isSaved = 
         throw new Error(errorData.message || 'Failed to save post');
       }
 
+      Toastify({
+        text: `Post saved successfully`,
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "top", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "#A7D7A0",
+          color: "#2E2E2E",
+          borderRadius: "12px", 
+          border: "1px solid rgba(46, 111, 64, 0.1)"
+        },
+      }).showToast();
+
       onSave?.(post.id);
 
     } catch (error) {
       const message = (error as Error).message;
       console.log("Error saving post:", message);
+      Toastify({
+        text: `${message}`,
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "top", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "#FF8A8A",
+          color: "#2E2E2E",
+          borderRadius: "12px", 
+          border: "1px solid rgba(46, 111, 64, 0.1)"
+        },
+      }).showToast();
     }
   }
 

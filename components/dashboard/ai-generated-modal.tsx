@@ -3,6 +3,7 @@
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useState, useEffect, use } from 'react';
+import Toastify from 'toastify-js';
 
 // ─── PURPOSE COLORS ──────────────────────────────────────────────────────────
 const PURPOSE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -108,9 +109,38 @@ export default function StoryboardPreviewModal({
       // 4. Cleanup
       link.remove();
       window.URL.revokeObjectURL(url);
+      Toastify({
+        text: `Export complete!`,
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "top", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "#A7D7A0",
+          color: "#2E2E2E",
+          borderRadius: "12px", 
+          border: "1px solid rgba(46, 111, 64, 0.1)"
+        },
+      }).showToast();
     } catch (error) {
-      console.error("Download error:", error);
-      alert("Failed to download PDF");
+      console.log("Download error:", error);
+      Toastify({
+        text: `Export failed!`,
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "top", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "#FF8A8A",
+          color: "#2E2E2E",
+          borderRadius: "12px", 
+          border: "1px solid rgba(46, 111, 64, 0.1)"
+        },
+      }).showToast();
     } finally {
       setIsExporting(false);
     }
@@ -353,9 +383,40 @@ export default function StoryboardPreviewModal({
         }
       }
 
+      Toastify({
+        text: `Storyboard saved successfully!`,
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "top", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "#A7D7A0",
+          color: "#2E2E2E",
+          borderRadius: "12px", 
+          border: "1px solid rgba(46, 111, 64, 0.1)"
+        },
+      }).showToast();
+
       fetchIdeas?.();
     } catch (err) {
-      console.error('Save all failed:', err);
+      console.log('Save all failed:', err);
+      Toastify({
+        text: `Failed to save storyboard!`,
+        duration: 3000,
+        newWindow: true,
+        close: true,
+        gravity: "top", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "#FF8A8A",
+          color: "#2E2E2E",
+          borderRadius: "12px", 
+          border: "1px solid rgba(46, 111, 64, 0.1)"
+        },
+      }).showToast();
     } finally {
       setIsSaving(false);
     }

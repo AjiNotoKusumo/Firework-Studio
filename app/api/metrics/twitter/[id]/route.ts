@@ -41,7 +41,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
         console.log("Twitter post metrics response:", resultPost);
 
-        return Response.json(resultPost.data, { status: 200 });
+        return Response.json({
+            likes: resultPost.data.public_metrics.like_count || 0,
+            comments: resultPost.data.public_metrics.reply_count || 0,
+            shares: resultPost.data.public_metrics.retweet_count + resultPost.data.public_metrics.quote_count || 0,
+            views: resultPost.data.public_metrics.impression_count || 0,
+            reach: resultPost.data.public_metrics.impression_count || 0,
+            engagement: resultPost.data.public_metrics.like_count + resultPost.data.public_metrics.reply_count + resultPost.data.public_metrics.retweet_count + resultPost.data.public_metrics.quote_count + resultPost.data.public_metrics.bookmark_count || 0,
+        }, { status: 200 });
     } catch (error) {
         let err = error as { message: string, status: number }
         console.log("Error fetching posts:", error)

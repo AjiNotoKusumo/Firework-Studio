@@ -15,7 +15,7 @@ type PostPreviewProps = {
     media?: MediaItem[]; // preferred — supports images + videos
     images?: string[]; // legacy fallback — images only
     caption?: string;
-    platform?: 'instagram' | 'twitter';
+    platform?: 'instagram' | 'twitter' | 'tiktok';
   };
 };
 
@@ -231,6 +231,97 @@ function TwitterMediaGrid({ media }: { media: MediaItem[] }) {
   );
 }
 
+// TikTok carousel
+function TikTokCarousel({ media }: { media: MediaItem[] }) {
+  const [current, setCurrent] = useState(0);
+  const total = media.length;
+
+  return (
+    <div className="relative w-full h-full overflow-hidden bg-black">
+      <div
+        className="flex h-full transition-transform duration-300 ease-in-out"
+        style={{ transform: `translateX(-${current * 100}%)` }}>
+        {media.map((item, i) => (
+          <div key={i} className="relative h-full w-full flex-shrink-0">
+            <MediaSlide item={item} active={i === current} objectFit="contain" />
+          </div>
+        ))}
+      </div>
+
+      {total > 1 && (
+        <>
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {media.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrent(i)}
+                className="h-1.5 rounded-full transition-all"
+                style={{
+                  width: i === current ? 16 : 6,
+                  background: i === current ? 'white' : 'rgba(255,255,255,0.5)',
+                }}
+              />
+            ))}
+          </div>
+          <div className="absolute top-3 right-3 text-[10px] text-white bg-black/50 rounded-full px-2 py-0.5 z-10">
+            {current + 1}/{total}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function TikTokPreview({ media, caption }: { media: MediaItem[]; caption: string }) {
+  return (
+    <div className="w-full max-w-[360px] bg-black text-white rounded-2xl overflow-hidden border border-white/10">
+      <div className="relative w-full" style={{ aspectRatio: '9/16' }}>
+        {media.length > 0 ? (
+          <TikTokCarousel media={media} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-white/60 text-sm">
+            Your media...
+          </div>
+        )}
+
+        <div className="absolute top-2 left-0 right-0 flex items-center justify-center text-xs font-semibold">
+          <span className="opacity-70">Following</span>
+          <span className="mx-2 opacity-40">|</span>
+          <span>For You</span>
+        </div>
+
+        <div className="absolute right-2 bottom-20 flex flex-col items-center gap-4 text-[11px]">
+          <div className="w-9 h-9 rounded-full bg-gray-300 border-2 border-white" />
+          <div className="flex flex-col items-center">
+            <Heart className="w-6 h-6" />
+            <span className="mt-1">0</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <MessageCircle className="w-6 h-6" />
+            <span className="mt-1">0</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <Bookmark className="w-6 h-6" />
+            <span className="mt-1">0</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <Share2 className="w-6 h-6" />
+            <span className="mt-1">0</span>
+          </div>
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+
+        <div className="absolute left-3 right-16 bottom-3 text-sm">
+          <div className="font-semibold">@username</div>
+          <div className="text-xs mt-1">{caption ? renderCaption(caption) : 'Your caption...'}</div>
+          <div className="text-[11px] mt-2 opacity-80">Original sound - username</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 export function PostPreview({ formData }: PostPreviewProps) {
   const media = resolveMedia(formData);
@@ -264,6 +355,10 @@ export function PostPreview({ formData }: PostPreviewProps) {
         </div>
       </div>
     );
+  }
+
+  if (formData.platform === 'tiktok') {
+    return <TikTokPreview media={media} caption={caption} />;
   }
 
   // ───────────────────────── TWITTER ─────────────────────────

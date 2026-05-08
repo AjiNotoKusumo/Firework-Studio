@@ -10,6 +10,9 @@ type Tweet = {
     like_count: number;
     impression_count: number;
     reply_count?: number;
+    retweet_count?: number;
+    quote_count?: number;
+    bookmark_count?: number;
   };
   attachments?: {
     media_keys?: string[];
@@ -30,7 +33,7 @@ type TwitterAnalytics = {
   postsChange: string;
   views: string;
   viewsChange: string;
-  followerHistory: HistoryPoint[];
+  engagementHistory: HistoryPoint[];
   viewsHistory: HistoryPoint[];
 };
 
@@ -48,50 +51,62 @@ const formatNumber = (num: number): string => {
   return num.toString();
 };
 
+const generateMonths = (startYear: number) => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-based (Jan = 0)
+
+  const months = [];
+
+  for (let i = 0; i <= currentMonth; i++) {
+    const date = new Date(startYear, i, 1);
+
+    const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+    const label = date.toLocaleString("en-US", { month: "short" });
+
+    months.push({
+      key,
+      label,
+      views: 0,
+    });
+  }
+
+  return months;
+}
+
 const fakeChange = (prefix: string): string => {
   const value = (Math.random() * 10 + 2).toFixed(1);
   return `+${value}% ${prefix}`;
 };
 
-const generateFollowerHistory = (
-  currentFollowers: number
+const buildEngagementHistory = (
+  groupedByMonth: any,
 ): HistoryPoint[] => {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+  const baseMonths = generateMonths(new Date().getFullYear());
 
-  const history: HistoryPoint[] = [];
-  let value = currentFollowers;
+  const engagementHistory = baseMonths.map((month) => {
+    const existing = groupedByMonth[month.key];
 
-  for (let i = months.length - 1; i >= 0; i--) {
-    const decayFactor = 0.92 + Math.random() * 0.04;
-    value = Math.floor(value * decayFactor);
-
-    history.unshift({
-      name: months[i],
-      value,
-    });
-  }
-
-  // ensure last value is real
-  history[history.length - 1].value = currentFollowers;
-
-  return history;
+    return {
+      name: month.label,
+      value: existing ? existing.engagement : 0,
+    };
+  });
+  return engagementHistory;
 };
 
-const buildViewsHistory = (tweets: Tweet[]): HistoryPoint[] => {
-  const map = new Map<string, number>();
+const buildViewsHistory = (groupedByMonth: any): HistoryPoint[] => {
+  const baseMonths = generateMonths(new Date().getFullYear());
 
-  tweets.forEach((t) => {
-    const date = new Date(t.created_at);
-    const month = date.toLocaleString("en-US", { month: "short" });
+  const viewsHistory = baseMonths.map((month) => {
+    const existing = groupedByMonth[month.key];
 
-    const current = map.get(month) ?? 0;
-    map.set(month, current + (t.public_metrics.impression_count || 0));
+    return {
+      name: month.label,
+      value: existing ? existing.views : 0,
+    };
   });
-
-  return Array.from(map.entries()).map(([name, value]) => ({
-    name,
-    value,
-  }));
+  return viewsHistory;
 };
 
 const getBestDay = (tweets: Tweet[]): string => {
@@ -145,37 +160,59 @@ const getPeakTime = (tweets: Tweet[]): string => {
   return `${bestHour}:00 - ${bestHour + 2}:00`;
 };
 
-const getAvgEngagement = (tweets: Tweet[]): string => {
-  let total = 0;
+const getEngagementRate = (tweets: Tweet[]): string => {
+  let totalEngagement = 0;
+  let totalImpressions = 0;
 
   tweets.forEach((t) => {
-    total +=
-      (t.public_metrics.like_count + (t.public_metrics.reply_count || 0)) /
-      Math.max(t.public_metrics.impression_count, 1);
+    totalEngagement +=
+      t.public_metrics.like_count +
+      (t.public_metrics.reply_count || 0) +
+      (t.public_metrics.retweet_count || 0) +
+      (t.public_metrics.quote_count || 0) +
+      (t.public_metrics.bookmark_count || 0);
+
+    totalImpressions += t.public_metrics.impression_count || 0;
   });
 
-  const avg = (total / tweets.length) * 100;
-  return `${avg.toFixed(1)}%`;
+  const rate =
+    totalImpressions > 0
+      ? (totalEngagement / totalImpressions) * 100
+      : 0;
+
+  return `${rate.toFixed(1)}%`;
 };
 
-const getTopFormat = (tweets: Tweet[]): string => {
-  let media = 0;
-  let text = 0;
+const getTopTweet = (tweets: Tweet[]) : string => {
+  if (!tweets.length) return `-`;
 
-  tweets.forEach((t) => {
-    if (t.attachments?.media_keys?.length) media++;
-    else text++;
-  });
+  const maxEngagement = tweets
+    .map((t) => {
+      const metrics = t.public_metrics;
 
-  return media > text ? "Media" : "Text";
+      const engagement =
+        (metrics.like_count || 0) +
+        (metrics.reply_count || 0) +
+        (metrics.retweet_count || 0) +
+        (metrics.quote_count || 0) +
+        (metrics.bookmark_count || 0);
+
+      return {
+        engagement,
+        createdAt: t.created_at,
+      };
+    })
+    .sort((a, b) => b.engagement - a.engagement)[0].engagement
+
+  return `${maxEngagement} Engagement`;
 };
 
 const buildGrowthSummary = (tweets: Tweet[]): GrowthSummary => {
   return {
     bestDay: getBestDay(tweets),
     peakTime: getPeakTime(tweets),
-    avgEngagement: getAvgEngagement(tweets),
-    topFormat: getTopFormat(tweets),
+    avgEngagement: getEngagementRate(tweets),
+    topFormat: getTopTweet(tweets),
   };
 };
 
@@ -198,6 +235,31 @@ const buildTwitterAnalytics = (
 ): TwitterAnalytics => {
   const { likes, views } = aggregate(tweets);
 
+  const groupedByMonth = tweets.reduce((acc: any, t) => {
+    const date = new Date(t.created_at);
+
+    const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+
+    if (date.getFullYear() === new Date().getFullYear()) {
+      if (!acc[monthKey]) {
+        acc[monthKey] = {
+          views: 0,
+          engagement: 0
+        };
+      }
+
+      acc[monthKey].views += t.public_metrics.impression_count || 0;
+      acc[monthKey].engagement +=
+        (t.public_metrics.like_count || 0) +
+        (t.public_metrics.reply_count || 0) +
+        (t.public_metrics.retweet_count || 0) +
+        (t.public_metrics.quote_count || 0) +
+        (t.public_metrics.bookmark_count || 0);
+    }
+
+    return acc;
+  }, {});
+
   return {
     followers: formatNumber(followers),
     followersChange: fakeChange("from last month"),
@@ -211,8 +273,8 @@ const buildTwitterAnalytics = (
     views: formatNumber(views),
     viewsChange: fakeChange("from last month"),
 
-    followerHistory: generateFollowerHistory(followers),
-    viewsHistory: buildViewsHistory(tweets),
+    engagementHistory: buildEngagementHistory(groupedByMonth),
+    viewsHistory: buildViewsHistory(groupedByMonth),
   };
 };
 
@@ -285,13 +347,6 @@ export async function GET(req: Request) {
     );
 
     const growth = buildGrowthSummary(tweets);
-
-    const twitterMetrics = {
-        followers: resultProfile.data.public_metrics?.followers_count,
-        posts: resultProfile.data.public_metrics?.tweet_count,
-        like: resultPost.data.reduce((acc: number, tweet: any) => acc + (tweet.public_metrics?.like_count || 0), 0),
-        views: resultPost.data.reduce((acc: number, tweet: any) => acc + (tweet.public_metrics?.impression_count || 0), 0),
-    }
     
     console.log(resultPost.data);
     
@@ -314,8 +369,6 @@ export async function POST(req: Request) {
                 userId: body.userId
             },
         });
-
-        console.log("Access token retrieved for Twitter:", accessToken);
 
         if (!accessToken) {
             throw { message: 'No access token found for Twitter', status: 403 };
@@ -353,16 +406,16 @@ export async function POST(req: Request) {
         }
 
         await PostModel.updatePost(body.postId, {
+            ...body,
             status: "published",
             qstashId: null,
             twitterId: result.data.id,
-            ...body
         })
 
         return NextResponse.json(result.data);
     } catch (error) {
         let err = error as { message: string, status: number }
         console.log("Error fetching posts:", error)
-        return Response.json({ error: err.message ||'Failed to fetch posts' }, { status: 500 })
+        return Response.json({ error: err.message ||'Failed to create post' }, { status: err.status || 500 })
     }
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
+import { SiInstagram, SiTiktok, SiX } from "react-icons/si";
 import { 
   ChevronLeft, 
   Heart, 
@@ -45,22 +46,56 @@ export default function ViewPostPage() {
   const [metrics, setMetrics] = useState<any>(null)
   const [isPublished, setIsPublished] = useState(false)
   
-  const fetchMetrics = async (metricsId: string) => {
+  const fetchTwitterMetrics = async (metricsId: string) => {
     try {
       const response = await fetch(`/api/metrics/twitter/${metricsId}`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch Twitter metrics data")
+      }
+
+      const data = await response.json()
+      console.log("Fetched metrics data twitter:", data)
+
+      setMetrics(data)
+
+    } catch (error) {
+      console.error("Failed to fetch Twitter metrics data:", error)
+    }
+  }
+  
+  const fetchInstagramMetrics = async (metricsId: string) => {
+    try {
+      const response = await fetch(`/api/metrics/instagram/${metricsId}`)
       if (!response.ok) {
         throw new Error("Failed to fetch metrics")
       }
 
       const data = await response.json()
-      console.log("Fetched metrics:", data)
+      console.log("Fetched metrics data instagram:", data.likes)
 
       setMetrics(data)
 
     } catch (error) {
-      console.error("Failed to fetch metrics:", error)
+      console.error("Failed to fetch Instagram metrics data:", error)
     }
-  } 
+  }
+
+  const fetchTikTokMetrics = async (metricsId: string) => {
+    try {
+
+      setMetrics({
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        views: 0,
+        reach: 0,
+        engagement: 0
+      })
+
+    } catch (error) {
+      console.error("Failed to fetch TikTok metrics data:", error)
+    }
+  }  
 
   const fetchPost = async () => {
     try {
@@ -73,7 +108,13 @@ export default function ViewPostPage() {
 
       if (data.status === "published") {
         setIsPublished(true)
-        fetchMetrics(data.twitterId)
+        if(data.platform === "instagram") {
+          fetchInstagramMetrics(data.instagramId)
+        } else if(data.platform === "twitter") {
+          fetchTwitterMetrics(data.twitterId)
+        } else if(data.platform === "tiktok") {
+          fetchTikTokMetrics(data.tiktokId)
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load post")
@@ -246,9 +287,11 @@ export default function ViewPostPage() {
               
               <div className="flex items-center gap-2">
                 {post.platform === "instagram" ? (
-                  <Instagram className="h-5 w-5 text-[#E1306C]" />
+                  <SiInstagram className="h-5 w-5 text-[#E1306C]" />
+                ) : post.platform === "twitter" ?(
+                  <SiX className="h-5 w-5 text-black" />
                 ) : (
-                  <Twitter className="h-5 w-5 text-[#1DA1F2]" />
+                  <SiTiktok className="h-5 w-5 text-[#69C9D0]" />
                 )}
                 
                 <span className="text-sm font-medium capitalize">{post.platform}</span>
@@ -319,17 +362,17 @@ export default function ViewPostPage() {
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="rounded-[16px] bg-secondary p-4 text-center">
                   <Heart className="h-5 w-5 mx-auto text-red-500 mb-2" />
-                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.public_metrics?.like_count)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.likes)}</p>
                   <p className="text-xs text-muted-foreground">Likes</p>
                 </div>
                 <div className="rounded-[16px] bg-secondary p-4 text-center">
                   <MessageCircle className="h-5 w-5 mx-auto text-[#0EA5E9] mb-2" />
-                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.public_metrics?.reply_count)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.comments)}</p>
                   <p className="text-xs text-muted-foreground">Comments</p>
                 </div>
                 <div className="rounded-[16px] bg-secondary p-4 text-center">
                   <Share2 className="h-5 w-5 mx-auto text-[#F59E0B] mb-2" />
-                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.public_metrics?.retweet_count)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.shares)}</p>
                   <p className="text-xs text-muted-foreground">Shares</p>
                 </div>
               </div>
@@ -337,17 +380,17 @@ export default function ViewPostPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="rounded-[16px] bg-[#E8F5E9] p-4 text-center">
                   <Eye className="h-5 w-5 mx-auto text-primary mb-2" />
-                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.public_metrics?.impression_count)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.views)}</p>
                   <p className="text-xs text-muted-foreground">Views</p>
                 </div>
                 <div className="rounded-[16px] bg-[#CFEFFF]/50 p-4 text-center">
                   <Users className="h-5 w-5 mx-auto text-[#0EA5E9] mb-2" />
-                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.public_metrics?.bookmark_count)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.reach)}</p>
                   <p className="text-xs text-muted-foreground">Reach</p>
                 </div>
                 <div className="rounded-[16px] bg-[#FFD54F]/20 p-4 text-center">
                   <TrendingUp className="h-5 w-5 mx-auto text-[#F59E0B] mb-2" />
-                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.public_metrics?.quote_count)}</p>
+                  <p className="text-xl font-bold text-foreground">{formatNumber(metrics?.engagement)}</p>
                   <p className="text-xs text-muted-foreground">Engagement</p>
                 </div>
               </div>

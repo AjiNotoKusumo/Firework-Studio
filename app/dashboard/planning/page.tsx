@@ -82,7 +82,7 @@ export default function PlanningPage() {
                 })}
               </p>
             )}
-            {post.scheduledAt && Date.now() >= new Date(post.scheduledAt).getTime() && (
+            {post.scheduledAt && post.status === "published" && (
               <p className="mt-2 text-xs text-muted-foreground">
                 Published at {new Date(post.scheduledAt).toLocaleDateString('en-US', { 
                   month: 'short', 

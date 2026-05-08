@@ -6,6 +6,8 @@ import { Instagram, Twitter, Plus, LogOut, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { SiInstagram, SiTiktok, SiX } from "react-icons/si";
+import Swal from 'sweetalert2';
 
 // const accounts = [
 //   { platform: 'Instagram', username: '@indra.creates', icon: Instagram },
@@ -91,7 +93,7 @@ export default function ProfilePage() {
         throw new Error(error.message);
       }
     } catch (error) {
-      console.error("Error linking Instagram account:", error);
+      console.log("Error linking Instagram account:", error);
     }
   }
 
@@ -106,7 +108,66 @@ export default function ProfilePage() {
         throw new Error(error.message);
       }
     } catch (error) {
-      console.error("Error linking Twitter account:", error);
+      console.log("Error linking Twitter account:", error);
+    }
+  }
+
+  const handleLinkTikTok = async () => {
+    try {
+      const {data, error} = await authClient.linkSocial({
+        provider: 'tiktok',
+        callbackURL: '/dashboard/profile',
+      })
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      console.log("Error linking TikTok account:", error);
+    }
+  }
+
+  const handleUnlinkAccount = async (providerId: string) => {
+    try {
+      const conirmation = await Swal.fire({
+        title: 'Are you sure?',
+        text: 'This process cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes',
+        cancelButtonText: 'Cancel',
+        background: '#e5ecdf',
+        color: '#727070',
+      });
+
+      if (!conirmation.isConfirmed) {
+        return Swal.fire({
+          title: 'Cancelled',
+          text: 'Unlinking process cancelled!',
+          icon: 'error',
+          background: '#e5ecdf',
+          color: '#727070',
+        });
+      }
+
+      const { data, error } = await authClient.unlinkAccount({
+        providerId
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      getMyAccounts();
+    } catch (error) {
+      console.log("Error unlinking account:", error);
+      return Swal.fire({
+        title: 'Error',
+        text: 'Failed to unlink account.',
+        icon: 'error',
+        background: '#e5ecdf',
+        color: '#727070',
+      });
     }
   }
 
@@ -120,7 +181,7 @@ export default function ProfilePage() {
       setAccounts(data.map((acc: any) => ({
         providerId: acc.providerId,
         createdAt: new Date(acc.createdAt).toLocaleDateString(),
-        Icon: acc.providerId === "instagram" ? Instagram : Twitter
+        Icon: acc.providerId === "instagram" ? SiInstagram : acc.providerId === "tiktok" ? SiTiktok : SiX
       })));
     } catch (error) {
       console.error("Error fetching connected accounts:", error);
@@ -201,7 +262,7 @@ export default function ProfilePage() {
           <h2 className="text-lg font-semibold mb-4">Connected Accounts</h2>
 
           <div className="space-y-3">
-            {accounts.map((acc : any, i : any) => (
+            {accounts.filter((acc : any) => acc.providerId !== 'credential').map((acc : any, i : any) => (
               <div
                 key={i}
                 className="flex items-center justify-between rounded-[16px] border border-border px-4 py-3 hover:bg-[#E8F5E9]/40 transition">
@@ -212,7 +273,7 @@ export default function ProfilePage() {
                     <p className="text-xs text-muted-foreground">{acc.createdAt}</p>
                   </div>
                 </div>
-                <button className="text-xs text-red-500 hover:underline">Disconnect</button>
+                <button onClick={() => handleUnlinkAccount(acc.providerId)} className="text-xs text-red-500 hover:underline">Disconnect</button>
               </div>
             ))}
 
@@ -262,7 +323,7 @@ export default function ProfilePage() {
               <div className="space-y-3">
                 <button onClick={handleLinkInstagram} className="w-full flex items-center justify-between rounded-[16px] border px-4 py-3 hover:bg-[#E8F5E9] transition">
                   <div className="flex items-center gap-3">
-                    <Instagram className="h-5 w-5 text-[#E1306C]" />
+                    <SiInstagram className="h-5 w-5 text-[#E1306C]" />
                     <span className="text-sm font-medium">Instagram</span>
                   </div>
                   <span className="text-xs text-muted-foreground">Connect</span>
@@ -270,8 +331,16 @@ export default function ProfilePage() {
 
                 <button onClick={handleLinkTwitter} className="w-full flex items-center justify-between rounded-[16px] border px-4 py-3 hover:bg-[#E8F5E9] transition">
                   <div className="flex items-center gap-3">
-                    <Twitter className="h-5 w-5 text-[#1DA1F2]" />
+                    <SiX className="h-5 w-5 text-black" />
                     <span className="text-sm font-medium">Twitter</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">Connect</span>
+                </button>
+
+                <button onClick={handleLinkTikTok} className="w-full flex items-center justify-between rounded-[16px] border px-4 py-3 hover:bg-[#E8F5E9] transition">
+                  <div className="flex items-center gap-3">
+                    <SiTiktok className="h-5 w-5 text-black" />
+                    <span className="text-sm font-medium">TikTok</span>
                   </div>
                   <span className="text-xs text-muted-foreground">Connect</span>
                 </button>

@@ -31,10 +31,12 @@ export async function POST(req: Request) {
       return Response.json({ error: "Cannot schedule in the past" }, { status: 400 });
     }
 
+    const endPoint = body.platform === "twitter" ? "api/metrics/twitter" : body.platform === "instagram" ? "api/metrics/instagram" : "api/metrics/tiktok";
+
     // 2. Publish to QStash
     const result = await qstashClient.publishJSON({
       // IMPORTANT: This is the URL of the WORKER we will build in Step 6
-      url: "https://operator-retirement-stage-treatments.trycloudflare.com/api/metrics/twitter",
+      url: `${process.env.NEXT_PUBLIC_APP_URL}/${endPoint}`,
       
       delay: delayInSeconds,
       

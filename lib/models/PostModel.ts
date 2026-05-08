@@ -112,6 +112,7 @@ export default class PostModel {
                 qstashId: qstashId || null,
                 twitterId: twitterId || null,
                 instagramId: instagramId || null,
+                tiktokId: data.tiktokId || null,
                 media: {
                     deleteMany: {}, // This will remove existing media associations
                     create: data.images ? data.images.map((url: string, index: number) => ({ url, order: index + 1 })) : [], // Add new media associations
@@ -289,5 +290,24 @@ export default class PostModel {
         });
 
         return updatedPlanning;
+    }
+
+    static async findInstagramAccount(userId: string, providerId: string) {
+        if(!userId) {
+            throw { message: "userId is required to find Instagram account", status: 400 };
+        }
+
+        if(!providerId) {
+            throw { message: "providerId is required to find Instagram account", status: 400 };
+        }
+
+        const account = await prisma.account.findFirst({
+            where: {
+                userId,
+                providerId
+            }
+        });
+
+        return account;
     }
 }

@@ -356,6 +356,7 @@ export function PostForm({ initialData, mode, formData, setFormData, postId }: P
               </option>
               <option value="instagram">Instagram</option>
               <option value="twitter">Twitter</option>
+              <option value="tiktok">TikTok</option>
             </select>
           </div>
           <div className="flex flex-col gap-1">

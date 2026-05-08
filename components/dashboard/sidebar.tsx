@@ -10,10 +10,10 @@ import { useSession } from '@/lib/auth-client';
 const navItems = [
   { icon: Plus, label: 'Create', href: '/dashboard/posts/create', highlight: true },
   { icon: BarChart3, label: 'Metrics', href: '/dashboard/metrics' },
-  { icon: TrendingUp, label: 'Trending', href: '/dashboard/trending' },
-  { icon: Flame, label: 'Redzone', href: '/dashboard/redzone' }, // 👈 added here
+  { icon: TrendingUp, label: 'Trending', href: '/dashboard/trending' }, // 👈 added here
   { icon: Bookmark, label: 'Saved', href: '/dashboard/saved' },
   { icon: PenSquare, label: 'Planning', href: '/dashboard/planning' },
+  { icon: Flame, label: 'Redzone', href: '/dashboard/redzone' },
   { icon: Calendar, label: 'Calendar', href: '/dashboard/calendar' },
 ];
 
@@ -63,7 +63,7 @@ export function Sidebar() {
         <Link href="/dashboard/profile" className="border-t border-border p-4">
           <div className="flex items-center gap-3 rounded-[16px] bg-[#E8F5E9] px-4 py-3">
             <div className="h-9 w-9 rounded-full bg-[#A7D7A0] flex items-center justify-center">
-              <span className="text-sm font-medium text-[#2E2E2E]">JD</span>
+              <span className="text-sm font-medium text-[#2E2E2E]">{session?.user?.name?.slice(0, 2).toUpperCase()}</span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">{session?.user?.name}</p>
